@@ -6,3 +6,9 @@
 //
 
 import Foundation
+struct Workout: Identifiable {
+    let id = UUID()
+    var name: String
+    var exercises: [Exercise] // A list (array) of Exercise objects that belong to this workout.
+    
+}
