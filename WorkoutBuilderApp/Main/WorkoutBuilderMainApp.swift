@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import AVFoundation
+
 
 @main
 struct WorkoutBuilderMainApp: App {

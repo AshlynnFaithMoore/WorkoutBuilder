@@ -9,6 +9,7 @@ import SwiftUI
 
 struct HomeView: View {
     @ObservedObject var viewModel: WorkoutBuilderViewModel
+    @StateObject private var timerViewModel = HIITTimerViewModel()
     @State private var showingNewWorkoutDialog = false
     @State private var newWorkoutName = ""
     
@@ -36,6 +37,50 @@ struct HomeView: View {
             }
             .padding()
             
+            // HIIT Timer Section
+                        VStack(spacing: 16) {
+                            HStack {
+                                Text("Quick Actions")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                Spacer()
+                            }
+                            .padding(.horizontal)
+                            
+                            Button(action: {
+                                timerViewModel.isShowingCustomization = true
+                            }) {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "timer")
+                                        .font(.title2)
+                                        .foregroundColor(.white)
+                                        .frame(width: 50, height: 50)
+                                        .background(Color.orange)
+                                        .cornerRadius(25)
+                                    
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text("HIIT Timer")
+                                            .font(.headline)
+                                            .foregroundColor(.primary)
+                                        
+                                        Text("Set intervals for high-intensity workouts")
+                                            .font(.subheadline)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .padding(.horizontal)
+                        }
+                        .padding(.bottom)
             if viewModel.savedWorkouts.isEmpty {
                 VStack(spacing: 20) {
                     Image(systemName: "figure.strengthtraining.traditional")
@@ -82,6 +127,12 @@ struct HomeView: View {
             }
         } message: {
             Text("Enter a name for your new workout")
+        }
+        .sheet(isPresented: $timerViewModel.isShowingCustomization) {
+                    HIITTimerCustomizationView(timerViewModel: timerViewModel)
+                }
+                .fullScreenCover(isPresented: $timerViewModel.isShowingActiveTimer) {
+                    HIITTimerActiveView(timerViewModel: timerViewModel)
         }
     }
 }
