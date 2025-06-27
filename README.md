@@ -1,1 +1,9 @@
-My Workout Builder App
+# Ashlynn's Workout Builder App
+***
+Workout Builder is a Swift-based iOS app that allows users to create and customize their own workout routines using a library of pre-defined exercises. Each exercise includes visuals (GIFs), reps, sets and durations to help users follow along accurately and track their progress. Users can save their workouts for future use, enabling a personalized and flexible fitness experience.
+
+**Link to Project:**
+
+## How It's Made:
+***
+I built this workout builder app from the ground up using SwiftUI and the MVVM (Model-View-ViewModel) architectural pattern to create a clean, maintainable codebase that separates concerns effectively. The app leverages SwiftUI's declarative syntax and powerful state management through @Published properties and @ObservedObject to create a reactive user interface that updates seamlessly as users modify their workouts. I implemented a comprehensive data model with Exercise and Workout structs that conform to Codable for seamless JSON serialization, enabling persistent storage through UserDefaults. The app features a sophisticated navigation flow with sheet presentations for exercise selection, custom stepper controls for sets/reps/duration configuration, and smooth animations that enhance the user experience. The filtering system for exercise categories demonstrates my understanding of computed properties and functional programming concepts, while the swipe-to-delete functionality showcases my knowledge of SwiftUI's built-in gesture recognizers and list interactions. I also implemented a robust timer system for HIIT workouts using Combine framework's Timer.publish() method, complete with AudioServices for haptic feedback and sound notifications, allowing users to customize intervals from 15 seconds to 2 minutes and total durations up to 60 minutes. The entire codebase follows Swift naming conventions and includes proper error handling, state validation, and user-friendly empty states that guide users through their first workout creation experience.
