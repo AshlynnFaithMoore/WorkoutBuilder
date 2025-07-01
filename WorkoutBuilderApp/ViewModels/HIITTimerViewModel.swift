@@ -17,11 +17,11 @@ class HIITTimerViewModel: ObservableObject {
     
     private var cancellables = Set<AnyCancellable>()
     private var timerCancellable: AnyCancellable?
-    private var audioPlayer: AVAudioPlayer?
+    private var audioPlayers: [String: AVAudioPlayer] = [:]
     
     init() {
         setupAudioSession()
-        loadSystemSound()
+        preloadSounds()
     }
     
     // MARK: - Timer Configuration
@@ -43,6 +43,13 @@ class HIITTimerViewModel: ObservableObject {
         timer.name = name
     }
     
+    func updateIntervalSound(_ sound: HIITSoundOption) {
+            timer.intervalSound = sound
+        }
+        
+    func updateCompletionSound(_ sound: HIITSoundOption) {
+            timer.completionSound = sound
+        }
     // MARK: - Timer Control
     func startTimer() {
         timer.start()
@@ -94,7 +101,7 @@ class HIITTimerViewModel: ObservableObject {
         
         // Check if interval is complete
         if timer.intervalTimeRemaining <= 0 {
-            playChimeSound()
+            playSound(timer.intervalSound)
             timer.currentInterval += 1
             timer.intervalTimeRemaining = timer.intervalDuration
         }
@@ -106,7 +113,7 @@ class HIITTimerViewModel: ObservableObject {
     }
     
     private func completeTimer() {
-        playCompletionSound()
+        playSound(timer.intervalSound)
         stopTimer()
         // You could add completion actions here (notifications, etc.)
     }
@@ -121,32 +128,62 @@ class HIITTimerViewModel: ObservableObject {
         }
     }
     
-    private func loadSystemSound() {
-        // Using a system sound - you can replace this with a custom sound file
-        guard let soundURL = Bundle.main.url(forResource: "chime", withExtension: "wav") else {
-            // Fallback to system sound if custom sound not available
-            return
+    private func preloadSounds() {
+            for soundOption in HIITSoundOption.allCases {
+                guard let fileName = soundOption.fileName,
+                      let soundURL = Bundle.main.url(forResource: fileName, withExtension: "wav") else {
+                    continue
+                }
+                
+                do {
+                    let audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
+                    audioPlayer.prepareToPlay()
+                    audioPlayers[soundOption.rawValue] = audioPlayer
+                } catch {
+                    print("Failed to load sound \(fileName): \(error)")
+                }
+            }
+        }
+    private func playSound(_ soundOption: HIITSoundOption) {
+            guard soundOption != .none else { return }
+            
+            if let audioPlayer = audioPlayers[soundOption.rawValue] {
+                audioPlayer.stop()
+                audioPlayer.currentTime = 0
+                audioPlayer.play()
+            } else {
+                // Fallback to system sounds
+                playSystemSound(for: soundOption)
+            }
         }
         
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-            audioPlayer?.prepareToPlay()
-        } catch {
-            print("Failed to load sound: \(error)")
+        private func playSystemSound(for soundOption: HIITSoundOption) {
+            let systemSoundID: SystemSoundID
+            
+            switch soundOption {
+            case .chime:
+                systemSoundID = 1016 // Short beep
+            case .bell:
+                systemSoundID = 1005 // Bell sound
+            case .beep:
+                systemSoundID = 1103 // Beep
+            case .whistle:
+                systemSoundID = 1016 // Fallback beep
+            case .buzzer:
+                systemSoundID = 1005 // Fallback bell
+            case .none:
+                return
+            }
+            
+            AudioServicesPlaySystemSound(systemSoundID)
+        }
+        
+        // Method to test sounds in customization view
+        func testSound(_ soundOption: HIITSoundOption) {
+            playSound(soundOption)
+        }
+        
+        deinit {
+            stopTimerLoop()
         }
     }
-    
-    private func playChimeSound() {
-        // Play system sound for interval chime
-        AudioServicesPlaySystemSound(1016) // Short beep
-    }
-    
-    private func playCompletionSound() {
-        // Play system sound for completion
-        AudioServicesPlaySystemSound(1005) // Completion sound
-    }
-    
-    deinit {
-        stopTimerLoop()
-    }
-}

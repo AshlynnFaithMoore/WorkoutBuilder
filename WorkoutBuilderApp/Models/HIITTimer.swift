@@ -8,11 +8,40 @@
 
 import Foundation
 
+
+enum HIITSoundOption: String, CaseIterable, Codable {
+    case chime = "chime"
+    case bell = "bell"
+    case beep = "beep"
+    case whistle = "whistle"
+    case buzzer = "buzzer"
+    case none = "none"
+    
+    var displayName: String {
+        switch self {
+        case .chime: return "Chime"
+        case .bell: return "Bell"
+        case .beep: return "Beep"
+        case .whistle: return "Whistle"
+        case .buzzer: return "Buzzer"
+        case .none: return "Silent"
+        }
+    }
+    
+    var fileName: String? {
+        switch self {
+        case .none: return nil
+        default: return self.rawValue
+        }
+    }
+}
 struct HIITTimer: Identifiable, Codable {
     var id = UUID()
     var name: String
     var intervalDuration: TimeInterval // in seconds (15 seconds to 2 minutes)
     var totalDuration: TimeInterval // in seconds (1 minute to 60 minutes)
+    var intervalSound: HIITSoundOption = .chime // Add sound selection
+    var completionSound: HIITSoundOption = .bell // Add completion sound selection
     var isActive: Bool = false
     var isPaused: Bool = false
     var timeRemaining: TimeInterval

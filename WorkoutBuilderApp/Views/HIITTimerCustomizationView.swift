@@ -16,6 +16,8 @@ struct HIITTimerCustomizationView: View {
     @State private var selectedIntervalIndex = 1 // Default to 30 seconds
     @State private var selectedDurationIndex = 2 // Default to 10 minutes
     @State private var customTimerName = "HIIT Timer"
+    @State private var selectedIntervalSound: HIITSoundOption = .chime
+    @State private var selectedCompletionSound: HIITSoundOption = .bell
     
     var body: some View {
         NavigationView {
@@ -85,7 +87,7 @@ struct HIITTimerCustomizationView: View {
                                 .font(.headline)
                                 .foregroundColor(.primary)
                             
-                            Text("How long the entire workout should last")
+                            Text("How long the entire workout should last?")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
@@ -111,6 +113,93 @@ struct HIITTimerCustomizationView: View {
                             }
                         }
                         .padding(.horizontal)
+                        
+                        // Sound Configuration Section
+                        
+                        VStack(alignment: .leading, spacing: 16) {
+                                                    Text("Sound Settings")
+                                                        .font(.headline)
+                                                        .foregroundColor(.primary)
+                                                    
+                                                    VStack(spacing: 16) {
+                                                        // Interval Sound Selection
+                                                        VStack(alignment: .leading, spacing: 8) {
+                                                            Text("Interval Sound")
+                                                                .font(.subheadline)
+                                                                .fontWeight(.medium)
+                                                            
+                                                            HStack {
+                                                                Menu {
+                                                                    ForEach(HIITSoundOption.allCases, id: \.self) { sound in
+                                                                        Button(sound.displayName) {
+                                                                            selectedIntervalSound = sound
+                                                                        }
+                                                                    }
+                                                                } label: {
+                                                                    HStack {
+                                                                        Text(selectedIntervalSound.displayName)
+                                                                            .foregroundColor(.primary)
+                                                                        Spacer()
+                                                                        Image(systemName: "chevron.down")
+                                                                            .foregroundColor(.secondary)
+                                                                            .font(.caption)
+                                                                    }
+                                                                    .padding()
+                                                                    .background(Color(.systemGray5))
+                                                                    .cornerRadius(8)
+                                                                }
+                                                                
+                                                                Button(action: {
+                                                                    timerViewModel.testSound(selectedIntervalSound)
+                                                                }) {
+                                                                    Image(systemName: "play.circle.fill")
+                                                                        .font(.title2)
+                                                                        .foregroundColor(.blue)
+                                                                }
+                                                                .disabled(selectedIntervalSound == .none)
+                                                            }
+                                                        }
+                                                        
+                                                        // Completion Sound Selection
+                                                        VStack(alignment: .leading, spacing: 8) {
+                                                            Text("Completion Sound")
+                                                                .font(.subheadline)
+                                                                .fontWeight(.medium)
+                                                            
+                                                            HStack {
+                                                                Menu {
+                                                                    ForEach(HIITSoundOption.allCases, id: \.self) { sound in
+                                                                        Button(sound.displayName) {
+                                                                            selectedCompletionSound = sound
+                                                                        }
+                                                                    }
+                                                                } label: {
+                                                                    HStack {
+                                                                        Text(selectedCompletionSound.displayName)
+                                                                            .foregroundColor(.primary)
+                                                                        Spacer()
+                                                                        Image(systemName: "chevron.down")
+                                                                            .foregroundColor(.secondary)
+                                                                            .font(.caption)
+                                                                    }
+                                                                    .padding()
+                                                                    .background(Color(.systemGray5))
+                                                                    .cornerRadius(8)
+                                                                }
+                                                                
+                                                                Button(action: {
+                                                                    timerViewModel.testSound(selectedCompletionSound)
+                                                                }) {
+                                                                    Image(systemName: "play.circle.fill")
+                                                                        .font(.title2)
+                                                                        .foregroundColor(.blue)
+                                                                }
+                                                                .disabled(selectedCompletionSound == .none)
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                .padding(.horizontal)
                         
                         // Preview Section
                         VStack(alignment: .leading, spacing: 12) {
@@ -146,21 +235,35 @@ struct HIITTimerCustomizationView: View {
                                     Text("\(Int(HIITTimer.presetDurations[selectedDurationIndex] / HIITTimer.presetIntervals[selectedIntervalIndex]))")
                                         .fontWeight(.medium)
                                 }
+                                HStack {
+                                    Text("Interval Sound:")
+                                    Spacer()
+                                    Text(selectedIntervalSound.displayName)
+                                    .fontWeight(.medium)
+                                }
+                                                                
+                                HStack {
+                                    Text("Completion Sound:")
+                                    Spacer()
+                                    Text(selectedCompletionSound.displayName)
+                                    .fontWeight(.medium)
+                                }
                             }
-                            .padding()
-                            .background(Color(.systemGray6))
-                            .cornerRadius(12)
+                                .padding()
+                                .background(Color(.systemGray6))
+                                .cornerRadius(12)
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
                     }
-                }
-                
                 // Start Timer Button
                 Button(action: {
                     let finalName = customTimerName.isEmpty ? "HIIT Timer" : customTimerName
                     timerViewModel.updateTimerName(finalName)
                     timerViewModel.updateInterval(HIITTimer.presetIntervals[selectedIntervalIndex])
                     timerViewModel.updateTotalDuration(HIITTimer.presetDurations[selectedDurationIndex])
+                    timerViewModel.updateIntervalSound(selectedIntervalSound)
+                    timerViewModel.updateCompletionSound(selectedCompletionSound)
                     timerViewModel.resetTimer()
                     timerViewModel.startTimer()
                 }) {
@@ -189,6 +292,8 @@ struct HIITTimerCustomizationView: View {
         }
         .onAppear {
             customTimerName = timerViewModel.timer.name
+            selectedIntervalSound = timerViewModel.timer.intervalSound
+            selectedCompletionSound = timerViewModel.timer.completionSound
         }
     }
 }
