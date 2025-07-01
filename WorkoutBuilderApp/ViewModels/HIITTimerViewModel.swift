@@ -113,7 +113,7 @@ class HIITTimerViewModel: ObservableObject {
     }
     
     private func completeTimer() {
-        playSound(timer.intervalSound)
+        playSound(timer.completionSound) // Fixed: Use completion sound instead of interval sound
         stopTimer()
         // You could add completion actions here (notifications, etc.)
     }

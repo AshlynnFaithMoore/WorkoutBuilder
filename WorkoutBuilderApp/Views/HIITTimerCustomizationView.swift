@@ -294,6 +294,15 @@ struct HIITTimerCustomizationView: View {
             customTimerName = timerViewModel.timer.name
             selectedIntervalSound = timerViewModel.timer.intervalSound
             selectedCompletionSound = timerViewModel.timer.completionSound
+            
+            // Set default indices based on current timer values
+            if let intervalIndex = HIITTimer.presetIntervals.firstIndex(of: timerViewModel.timer.intervalDuration) {
+                selectedIntervalIndex = intervalIndex
+            }
+            
+            if let durationIndex = HIITTimer.presetDurations.firstIndex(of: timerViewModel.timer.totalDuration) {
+                selectedDurationIndex = durationIndex
+            }
         }
     }
 }

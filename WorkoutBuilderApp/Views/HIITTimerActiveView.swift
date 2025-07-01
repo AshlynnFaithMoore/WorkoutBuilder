@@ -162,7 +162,13 @@ struct HIITTimerActiveView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-            // Handle app going to background - could add local notifications here
+                    // Handle app going to background - could add local notifications here
+                }
+                .onAppear {
+                    // Ensure the timer is properly initialized when view appears
+                    if !timerViewModel.timer.isActive {
+                        timerViewModel.resetTimer()
+                    }
         }
     }
 }
