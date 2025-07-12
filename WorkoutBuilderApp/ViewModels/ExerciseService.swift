@@ -38,13 +38,31 @@ class ExerciseService: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+        var request = URLRequest(url: url)
+        request.timeoutInterval = 15.0
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             DispatchQueue.main.async {
                 self?.isLoading = false
                 
                 if let error = error {
                     self?.errorMessage = "Network error: \(error.localizedDescription)"
+                    print("Network error: \(error)")
                     // Fallback to sample exercises
+                    self?.exercises = Exercise.sampleExercises
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    self?.errorMessage = "Invalid response"
+                    self?.exercises = Exercise.sampleExercises
+                    return
+                }
+                
+                print("HTTP Status Code: \(httpResponse.statusCode)")
+                
+                guard httpResponse.statusCode == 200 else {
+                    self?.errorMessage = "HTTP Error: \(httpResponse.statusCode)"
                     self?.exercises = Exercise.sampleExercises
                     return
                 }
@@ -55,9 +73,12 @@ class ExerciseService: ObservableObject {
                     return
                 }
                 
+                print("Received data size: \(data.count) bytes")
+                
                 do {
                     // Try to decode as array first
                     let decodedExercises = try JSONDecoder().decode([Exercise].self, from: data)
+                    print("Successfully decoded \(decodedExercises.count) exercises")
                     self?.exercises = decodedExercises
                     self?.cacheExercises(decodedExercises)
                 } catch {
@@ -65,6 +86,7 @@ class ExerciseService: ObservableObject {
                     // Try alternative structure
                     do {
                         let response = try JSONDecoder().decode(ExerciseResponse.self, from: data)
+                        print("Successfully decoded \(response.exercises.count) exercises from response wrapper")
                         self?.exercises = response.exercises
                         self?.cacheExercises(response.exercises)
                     } catch {
@@ -83,6 +105,7 @@ class ExerciseService: ObservableObject {
             let data = try JSONEncoder().encode(exercises)
             UserDefaults.standard.set(data, forKey: "CachedExercises")
             UserDefaults.standard.set(Date(), forKey: "CachedExercisesDate")
+            print("Cached \(exercises.count) exercises")
         } catch {
             print("Failed to cache exercises: \(error)")
         }
@@ -92,29 +115,32 @@ class ExerciseService: ObservableObject {
         guard let cacheDate = UserDefaults.standard.object(forKey: "CachedExercisesDate") as? Date,
               Date().timeIntervalSince(cacheDate) < 86400 * 7, // Cache for 7 days
               let data = UserDefaults.standard.data(forKey: "CachedExercises") else {
+            print("No valid cached exercises found")
             return nil
         }
         
         do {
-            return try JSONDecoder().decode([Exercise].self, from: data)
+            let cachedExercises = try JSONDecoder().decode([Exercise].self, from: data)
+            print("Loaded \(cachedExercises.count) cached exercises")
+            return cachedExercises
         } catch {
             print("Failed to load cached exercises: \(error)")
             return nil
         }
     }
     
-    // MARK: - Filtering
+    // MARK: - Filtering Methods (Fixed naming conflict)
     func exercises(for category: ExerciseCategory) -> [Exercise] {
-        return exercises.filter { $0.category == category }
-    }
-    
-    func exercises(for equipment: String) -> [Exercise] {
-        return exercises.filter { $0.equipment.contains(equipment) }
-    }
-    
-    func exercises(for level: String) -> [Exercise] {
-        return exercises.filter { $0.level.lowercased() == level.lowercased() }
-    }
+            return exercises.filter { $0.category == category }
+        }
+        
+    func exercises(withEquipment equipment: String) -> [Exercise] {
+            return exercises.filter { $0.equipment.contains(equipment) }
+        }
+        
+    func exercises(atLevel level: String) -> [Exercise] {
+            return exercises.filter { $0.level.lowercased() == level.lowercased() }
+        }
     
     func search(query: String) -> [Exercise] {
         guard !query.isEmpty else { return exercises }
@@ -135,5 +161,16 @@ class ExerciseService: ObservableObject {
     var availableLevels: [String] {
         let allLevels = exercises.map { $0.level }
         return Array(Set(allLevels)).sorted()
+    }
+    
+    // MARK: - Utility Methods
+    func refreshExercises() {
+        fetchExercises()
+    }
+    
+    func clearCache() {
+        UserDefaults.standard.removeObject(forKey: "CachedExercises")
+        UserDefaults.standard.removeObject(forKey: "CachedExercisesDate")
+        print("Cache cleared")
     }
 }

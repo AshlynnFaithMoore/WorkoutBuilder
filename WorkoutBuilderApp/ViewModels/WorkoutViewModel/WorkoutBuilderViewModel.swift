@@ -23,42 +23,40 @@ class WorkoutBuilderViewModel: ObservableObject {
     @Published var searchText = ""
     
     init() {
-            loadWorkoutsFromUserDefaults()
-        }
-        
-        // Computed property to get available exercises
-        var availableExercises: [Exercise] {
-            return exerciseService.exercises
-        }
-    // Computed property to filter exercises by category
-    var filteredExercises: [Exercise] {
-        if let category = selectedCategory {
-            return availableExercises.filter { $0.category == category }
-        }
-        return availableExercises
+        loadWorkoutsFromUserDefaults()
     }
     
-    if !searchText.isEmpty {
+    // Computed property to get available exercises
+    var availableExercises: [Exercise] {
+        return exerciseService.exercises
+    }
+    
+    // Computed property to filter exercises by category, equipment, level, and search
+    var filteredExercises: [Exercise] {
+        var filtered = availableExercises
+        
+        // Apply search filter first
+        if !searchText.isEmpty {
             filtered = exerciseService.search(query: searchText)
-            }
-            
-            // Apply category filter
-            if let category = selectedCategory {
-                filtered = filtered.filter { $0.category == category }
-            }
-            
-            // Apply equipment filter
-                if; let equipment = selectedEquipment {
-                filtered = filtered.filter { $0.equipment.contains(equipment) }
-            }
-            
-            // Apply level filter
-                if; let level = selectedLevel {
-                filtered = filtered.filter { $0.level.lowercased() == level.lowercased() }
-            }
-            
-            return filtered
-        }    // MARK: - Workout Management
+        }
+        
+        // Apply category filter
+        if let category = selectedCategory {
+            filtered = filtered.filter { $0.category == category }
+        }
+        
+        // Apply equipment filter
+        if let equipment = selectedEquipment {
+            filtered = filtered.filter { $0.equipment.contains(equipment) }
+        }
+        
+        // Apply level filter
+        if let level = selectedLevel {
+            filtered = filtered.filter { $0.level.lowercased() == level.lowercased() }
+        }
+        
+        return filtered
+    }    // MARK: - Workout Management
     func startNewWorkout(name: String) {
         currentWorkout = Workout(name: name)
         isCreatingWorkout = true
@@ -117,10 +115,10 @@ class WorkoutBuilderViewModel: ObservableObject {
         }
     }
     
-    func loadWorkoutsFromUserDefaults() {
+    private func loadWorkoutsFromUserDefaults() {
         if let data = UserDefaults.standard.data(forKey: "SavedWorkouts"),
            let decoded = try? JSONDecoder().decode([Workout].self, from: data) {
             savedWorkouts = decoded
-        
+        }
     }
 }
