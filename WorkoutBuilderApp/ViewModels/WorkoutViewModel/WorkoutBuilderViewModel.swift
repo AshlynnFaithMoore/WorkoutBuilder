@@ -13,13 +13,23 @@ import Foundation
 import SwiftUI
 
 class WorkoutBuilderViewModel: ObservableObject {
-    // @Published means SwiftUI will update views when these properties change
-    @Published var availableExercises: [Exercise] = Exercise.sampleExercises
+    @Published var exerciseService = ExerciseService()
     @Published var currentWorkout: Workout?
     @Published var savedWorkouts: [Workout] = []
     @Published var isCreatingWorkout = false
     @Published var selectedCategory: ExerciseCategory?
+    @Published var selectedEquipment: String?
+    @Published var selectedLevel: String?
+    @Published var searchText = ""
     
+    init() {
+            loadWorkoutsFromUserDefaults()
+        }
+        
+        // Computed property to get available exercises
+        var availableExercises: [Exercise] {
+            return exerciseService.exercises
+        }
     // Computed property to filter exercises by category
     var filteredExercises: [Exercise] {
         if let category = selectedCategory {
@@ -28,7 +38,27 @@ class WorkoutBuilderViewModel: ObservableObject {
         return availableExercises
     }
     
-    // MARK: - Workout Management
+    if !searchText.isEmpty {
+            filtered = exerciseService.search(query: searchText)
+            }
+            
+            // Apply category filter
+            if let category = selectedCategory {
+                filtered = filtered.filter { $0.category == category }
+            }
+            
+            // Apply equipment filter
+                if; let equipment = selectedEquipment {
+                filtered = filtered.filter { $0.equipment.contains(equipment) }
+            }
+            
+            // Apply level filter
+                if; let level = selectedLevel {
+                filtered = filtered.filter { $0.level.lowercased() == level.lowercased() }
+            }
+            
+            return filtered
+        }    // MARK: - Workout Management
     func startNewWorkout(name: String) {
         currentWorkout = Workout(name: name)
         isCreatingWorkout = true
@@ -69,6 +99,17 @@ class WorkoutBuilderViewModel: ObservableObject {
         isCreatingWorkout = true
     }
     
+    func clearFilters() {
+        selectedCategory = nil
+        selectedEquipment = nil
+        selectedLevel = nil
+        searchText = ""
+    }
+    
+    func refreshExercises() {
+        exerciseService.fetchExercises()
+    }
+    
     // MARK: - Data Persistence
     private func saveWorkoutsToUserDefaults() {
         if let encoded = try? JSONEncoder().encode(savedWorkouts) {
@@ -80,6 +121,6 @@ class WorkoutBuilderViewModel: ObservableObject {
         if let data = UserDefaults.standard.data(forKey: "SavedWorkouts"),
            let decoded = try? JSONDecoder().decode([Workout].self, from: data) {
             savedWorkouts = decoded
-        }
+        
     }
 }
