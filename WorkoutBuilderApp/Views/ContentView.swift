@@ -15,6 +15,15 @@ struct ContentView: View {
     var body: some View {
         NavigationView {
             VStack {
+                // Temporary debug button - remove this after testing
+                Button("🔍 Debug JSON Parsing") {
+                    viewModel.exerciseService.testJSONParsing()
+                }
+                .padding()
+                .background(Color.blue)
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                
                 if viewModel.isCreatingWorkout {
                     WorkoutBuilderView(viewModel: viewModel)
                 } else {
@@ -23,10 +32,12 @@ struct ContentView: View {
             }
         }
         .onAppear {
+            // Uncomment this line to test automatically when app starts
+            // viewModel.exerciseService.testJSONParsing()
         }
         .alert("Error Loading Exercises", isPresented: $showingError) {
             Button("Retry") {
-                viewModel.refreshExercises
+                viewModel.refreshExercises()
             }
             Button("Continue with Sample Data") {
                 // Continue with sample exercises
@@ -73,8 +84,3 @@ struct ContentView: View {
         }
     }
 }
-                    
-
-                    //#Preview {
-                        //ContentView()
-                    

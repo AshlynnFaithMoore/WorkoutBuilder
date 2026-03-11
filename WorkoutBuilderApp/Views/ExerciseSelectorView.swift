@@ -17,7 +17,27 @@ struct ExerciseSelectorView: View {
     
     var body: some View {
         NavigationView {
-            VStack {
+            VStack(spacing: 0) {
+                // Search Bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("Search by name, muscle, or equipment", text: $viewModel.searchText)
+                        .autocorrectionDisabled()
+                    
+                    if !viewModel.searchText.isEmpty {
+                        Button(action: { viewModel.searchText = "" }) {
+                            Image(systemName: "xmark.circle.fill")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+                .padding(10)
+                .background(Color(.systemGray5))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .padding(.vertical, 8)
+                
                 // Category Filter
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
@@ -43,33 +63,62 @@ struct ExerciseSelectorView: View {
                     }
                     .padding(.horizontal)
                 }
+                .padding(.bottom, 8)
+                
+                // Results count
+                if !viewModel.searchText.isEmpty {
+                    HStack {
+                        Text("\(viewModel.filteredExercises.count) results")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .padding(.horizontal)
+                    .padding(.bottom, 4)
+                }
                 
                 // Exercise List
-                List(viewModel.filteredExercises) { exercise in
-                    Button(action: {
-                        viewModel.addExerciseToCurrentWorkout(exercise)
-                        dismiss()
-                    }) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(exercise.name)
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            Text(exercise.description)
-                                .font(.body)
-                                .foregroundColor(.secondary)
-                            
-                            Text(exercise.category.rawValue)
-                                .font(.caption)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 2)
-                                .background(Color.blue.opacity(0.2))
-                                .foregroundColor(.blue)
-                                .cornerRadius(4)
-                        }
-                        .padding(.vertical, 4)
+                if viewModel.filteredExercises.isEmpty {
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 40))
+                            .foregroundColor(.gray)
+                        Text("No exercises found")
+                            .font(.headline)
+                            .foregroundColor(.gray)
+                        Text("Try a different search term or category")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        Spacer()
                     }
-                    .buttonStyle(PlainButtonStyle())
+                } else {
+                    List(viewModel.filteredExercises) { exercise in
+                        Button(action: {
+                            viewModel.addExerciseToCurrentWorkout(exercise)
+                            dismiss()
+                        }) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(exercise.name)
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+                                
+                                Text(exercise.description)
+                                    .font(.body)
+                                    .foregroundColor(.secondary)
+                                
+                                Text(exercise.category.rawValue)
+                                    .font(.caption)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 2)
+                                    .background(Color.blue.opacity(0.2))
+                                    .foregroundColor(.blue)
+                                    .cornerRadius(4)
+                            }
+                            .padding(.vertical, 4)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    }
                 }
             }
             .navigationTitle("Select Exercise")
@@ -80,6 +129,12 @@ struct ExerciseSelectorView: View {
                         dismiss()
                     }
                 }
+            }
+            .onDisappear {
+                // Clear search state when sheet closes so it
+                // doesn't persist into the next time it opens
+                viewModel.searchText = ""
+                viewModel.selectedCategory = nil
             }
         }
     }
