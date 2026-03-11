@@ -105,7 +105,7 @@ class WorkoutBuilderViewModel: ObservableObject {
     }
     
     func refreshExercises() {
-        exerciseService.fetchExercises()
+        exerciseService.refreshExercises() // now wraps Task { await fetchExercises() } internally
     }
     
     // MARK: - Data Persistence
