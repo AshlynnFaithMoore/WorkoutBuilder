@@ -8,17 +8,25 @@
 
 import Foundation
 
+// for testing purposes
+protocol URLSessionProtocol {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+}
+
+extension URLSession: URLSessionProtocol {}
+
+
 class ExerciseService: ObservableObject {
     @Published var exercises: [Exercise] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
     
     private let exerciseURL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json"
-    
-    init() {
-        Task {
-            await loadExercises()
-        }
+    private let session: URLSessionProtocol  // ← use protocol, not concrete type
+
+    init(session: URLSessionProtocol = URLSession.shared) {
+        self.session = session  // ← inject the session
+        Task { await loadExercises() }
     }
     
     // MARK: - Load (cache first, then network)
@@ -32,47 +40,45 @@ class ExerciseService: ObservableObject {
     
     // MARK: - Network Fetch
     func fetchExercises() async {
-        guard let url = URL(string: exerciseURL) else {
-            await MainActor.run { self.errorMessage = "Invalid URL" }
-            return
-        }
-        
-        await MainActor.run {
-            self.isLoading = true
-            self.errorMessage = nil
-        }
-        
-        do {
-            var request = URLRequest(url: url)
-            request.timeoutInterval = 15.0
-            
-            let (data, response) = try await URLSession.shared.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
-                throw ExerciseServiceError.invalidResponse
+            guard let url = URL(string: exerciseURL) else {
+                await MainActor.run { self.errorMessage = "Invalid URL" }
+                return
             }
-            
-            guard httpResponse.statusCode == 200 else {
-                throw ExerciseServiceError.httpError(httpResponse.statusCode)
-            }
-            
-            let decoded = try decodeExercises(from: data)
-            cacheExercises(decoded)
-            
+
             await MainActor.run {
-                self.exercises = decoded
-                self.isLoading = false
+                self.isLoading = true
+                self.errorMessage = nil
             }
-            
-        } catch {
-            let fallbackMessage = errorMessage(for: error)
-            await MainActor.run {
-                self.errorMessage = fallbackMessage
-                self.exercises = Exercise.sampleExercises
-                self.isLoading = false
+
+            do {
+                var request = URLRequest(url: url)
+                request.timeoutInterval = 15.0
+
+                let (data, response) = try await session.data(for: request) // ← self.session not URLSession.shared
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    throw ExerciseServiceError.invalidResponse
+                }
+                guard httpResponse.statusCode == 200 else {
+                    throw ExerciseServiceError.httpError(httpResponse.statusCode)
+                }
+
+                let decoded = try decodeExercises(from: data)
+                cacheExercises(decoded)
+
+                await MainActor.run {
+                    self.exercises = decoded
+                    self.isLoading = false
+                }
+            } catch {
+                let message = errorMessage(for: error)
+                await MainActor.run {
+                    self.errorMessage = message
+                    self.exercises = Exercise.sampleExercises
+                    self.isLoading = false
+                }
             }
         }
-    }
     
     // MARK: - Decoding
     // Tries array format first, then falls back to wrapped { "exercises": [] } format

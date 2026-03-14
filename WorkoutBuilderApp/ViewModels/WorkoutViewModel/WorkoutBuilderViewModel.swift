@@ -80,7 +80,8 @@ class WorkoutBuilderViewModel: ObservableObject {
     }
     
     func saveCurrentWorkout() {
-        guard let workout = currentWorkout else { return }
+        guard let workout = currentWorkout,
+              !workout.exercises.isEmpty else { return } 
         savedWorkouts.append(workout)
         currentWorkout = nil
         isCreatingWorkout = false
