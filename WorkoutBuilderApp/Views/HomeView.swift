@@ -137,7 +137,11 @@ struct HomeView: View {
                 .fullScreenCover(isPresented: $timerViewModel.isShowingActiveTimer) {
                     HIITTimerActiveView(timerViewModel: timerViewModel)
         }
+                .sheet(isPresented: $timerViewModel.isShowingSessionSummary) {
+                    HIITSessionSummaryView(timerViewModel: timerViewModel)
+                }
     }
+    
 }
 
 struct WorkoutRowView: View {

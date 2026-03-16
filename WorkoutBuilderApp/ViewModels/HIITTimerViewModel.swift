@@ -5,7 +5,6 @@
 //  Created by Ashlynn Moore on 6/26/25.
 //
 
-
 import Foundation
 import Combine
 import AVFoundation
@@ -15,43 +14,43 @@ class HIITTimerViewModel: ObservableObject {
     @Published var isShowingCustomization = false
     @Published var isShowingActiveTimer = false
     
+    // HealthKit session tracking
+    @Published var heartRateSamples: [HeartRateSample] = []
+    @Published var sessionCalories: Double = 0
+    @Published var isShowingSessionSummary = false
+    
+    private var sessionStartDate: Date?
     private var cancellables = Set<AnyCancellable>()
     private var timerCancellable: AnyCancellable?
     private var audioPlayers: [String: AVAudioPlayer] = [:]
+    private let healthKit = HealthKitManager.shared
     
     init() {
         setupAudioSession()
         preloadSounds()
+        Task { await healthKit.requestAuthorization() }
     }
     
     // MARK: - Timer Configuration
     func updateInterval(_ interval: TimeInterval) {
         timer.intervalDuration = interval
-        if !timer.isActive {
-            timer.intervalTimeRemaining = interval
-        }
+        if !timer.isActive { timer.intervalTimeRemaining = interval }
     }
     
     func updateTotalDuration(_ duration: TimeInterval) {
         timer.totalDuration = duration
-        if !timer.isActive {
-            timer.timeRemaining = duration
-        }
+        if !timer.isActive { timer.timeRemaining = duration }
     }
     
-    func updateTimerName(_ name: String) {
-        timer.name = name
-    }
+    func updateTimerName(_ name: String) { timer.name = name }
+    func updateIntervalSound(_ sound: HIITSoundOption) { timer.intervalSound = sound }
+    func updateCompletionSound(_ sound: HIITSoundOption) { timer.completionSound = sound }
     
-    func updateIntervalSound(_ sound: HIITSoundOption) {
-            timer.intervalSound = sound
-        }
-        
-    func updateCompletionSound(_ sound: HIITSoundOption) {
-            timer.completionSound = sound
-        }
     // MARK: - Timer Control
     func startTimer() {
+        sessionStartDate = Date()
+        heartRateSamples = []
+        sessionCalories = 0
         timer.start()
         isShowingActiveTimer = true
         isShowingCustomization = false
@@ -74,17 +73,13 @@ class HIITTimerViewModel: ObservableObject {
         isShowingActiveTimer = false
     }
     
-    func resetTimer() {
-        timer.reset()
-    }
+    func resetTimer() { timer.reset() }
     
     // MARK: - Private Timer Logic
     private func startTimerLoop() {
         timerCancellable = Timer.publish(every: 1.0, on: .main, in: .common)
             .autoconnect()
-            .sink { [weak self] _ in
-                self?.updateTimer()
-            }
+            .sink { [weak self] _ in self?.updateTimer() }
     }
     
     private func stopTimerLoop() {
@@ -95,30 +90,68 @@ class HIITTimerViewModel: ObservableObject {
     private func updateTimer() {
         guard timer.isActive && !timer.isPaused else { return }
         
-        // Update time remaining
         timer.timeRemaining -= 1
         timer.intervalTimeRemaining -= 1
         
-        // Check if interval is complete
         if timer.intervalTimeRemaining <= 0 {
             playSound(timer.intervalSound)
             timer.currentInterval += 1
             timer.intervalTimeRemaining = timer.intervalDuration
         }
         
-        // Check if total time is complete
         if timer.timeRemaining <= 0 {
             completeTimer()
         }
     }
     
     private func completeTimer() {
-        playSound(timer.completionSound) // Fixed: Use completion sound instead of interval sound
-        stopTimer()
-        // You could add completion actions here (notifications, etc.)
+        playSound(timer.completionSound)
+        stopTimerLoop()
+        timer.isActive = false
+        timer.isPaused = false
+        isShowingActiveTimer = false
+        
+        // Fetch HealthKit data for the session and save the workout
+        Task { await finishHealthKitSession() }
     }
     
-    // MARK: - Audio Setup
+    // MARK: - HealthKit Session
+    private func finishHealthKitSession() async {
+        guard let startDate = sessionStartDate else { return }
+        let endDate = Date()
+        
+        // Fetch heart rate and calories that occurred during the session
+        async let heartRates = healthKit.fetchHeartRate(from: startDate, to: endDate)
+        async let calories = healthKit.fetchTodayCalories()
+        
+        let (fetchedHeartRates, fetchedCalories) = await (heartRates, calories)
+        
+        // Save the workout to Health app
+        try? await healthKit.saveWorkout(
+            name: timer.name,
+            startDate: startDate,
+            endDate: endDate,
+            calories: fetchedCalories
+        )
+        
+        await MainActor.run {
+            self.heartRateSamples = fetchedHeartRates
+            self.sessionCalories = fetchedCalories
+            self.isShowingSessionSummary = true
+        }
+    }
+    
+    // MARK: - Computed Heart Rate Stats
+    var averageHeartRate: Int {
+        guard !heartRateSamples.isEmpty else { return 0 }
+        return heartRateSamples.map { $0.bpm }.reduce(0, +) / heartRateSamples.count
+    }
+    
+    var maxHeartRate: Int {
+        heartRateSamples.map { $0.bpm }.max() ?? 0
+    }
+    
+    // MARK: - Audio
     private func setupAudioSession() {
         do {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
@@ -129,61 +162,43 @@ class HIITTimerViewModel: ObservableObject {
     }
     
     private func preloadSounds() {
-            for soundOption in HIITSoundOption.allCases {
-                guard let fileName = soundOption.fileName,
-                      let soundURL = Bundle.main.url(forResource: fileName, withExtension: "wav") else {
-                    continue
-                }
-                
-                do {
-                    let audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-                    audioPlayer.prepareToPlay()
-                    audioPlayers[soundOption.rawValue] = audioPlayer
-                } catch {
-                    print("Failed to load sound \(fileName): \(error)")
-                }
+        for soundOption in HIITSoundOption.allCases {
+            guard let fileName = soundOption.fileName,
+                  let soundURL = Bundle.main.url(forResource: fileName, withExtension: "wav") else { continue }
+            do {
+                let player = try AVAudioPlayer(contentsOf: soundURL)
+                player.prepareToPlay()
+                audioPlayers[soundOption.rawValue] = player
+            } catch {
+                print("Failed to load sound \(fileName): \(error)")
             }
-        }
-    private func playSound(_ soundOption: HIITSoundOption) {
-            guard soundOption != .none else { return }
-            
-            if let audioPlayer = audioPlayers[soundOption.rawValue] {
-                audioPlayer.stop()
-                audioPlayer.currentTime = 0
-                audioPlayer.play()
-            } else {
-                // Fallback to system sounds
-                playSystemSound(for: soundOption)
-            }
-        }
-        
-        private func playSystemSound(for soundOption: HIITSoundOption) {
-            let systemSoundID: SystemSoundID
-            
-            switch soundOption {
-            case .chime:
-                systemSoundID = 1016 // Short beep
-            case .bell:
-                systemSoundID = 1005 // Bell sound
-            case .beep:
-                systemSoundID = 1103 // Beep
-            case .whistle:
-                systemSoundID = 1016 // Fallback beep
-            case .buzzer:
-                systemSoundID = 1005 // Fallback bell
-            case .none:
-                return
-            }
-            
-            AudioServicesPlaySystemSound(systemSoundID)
-        }
-        
-        // Method to test sounds in customization view
-        func testSound(_ soundOption: HIITSoundOption) {
-            playSound(soundOption)
-        }
-        
-        deinit {
-            stopTimerLoop()
         }
     }
+    
+    private func playSound(_ soundOption: HIITSoundOption) {
+        guard soundOption != .none else { return }
+        if let player = audioPlayers[soundOption.rawValue] {
+            player.stop()
+            player.currentTime = 0
+            player.play()
+        } else {
+            playSystemSound(for: soundOption)
+        }
+    }
+    
+    private func playSystemSound(for soundOption: HIITSoundOption) {
+        let id: SystemSoundID
+        switch soundOption {
+        case .chime: id = 1016
+        case .bell: id = 1005
+        case .beep: id = 1103
+        case .whistle, .buzzer: id = 1016
+        case .none: return
+        }
+        AudioServicesPlaySystemSound(id)
+    }
+    
+    func testSound(_ soundOption: HIITSoundOption) { playSound(soundOption) }
+    
+    deinit { stopTimerLoop() }
+}
