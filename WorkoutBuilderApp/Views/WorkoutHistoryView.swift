@@ -5,7 +5,6 @@
 //  Created by Ashlynn Moore on 3/16/26.
 //
 
-
 import SwiftUI
 import Charts
 
@@ -106,9 +105,14 @@ struct WorkoutHistoryView: View {
                 .cornerRadius(4)
             }
             .chartXAxis {
-                AxisMarks(values: .stride(by: .week)) { _ in
+                AxisMarks(values: .stride(by: .day, count: 7)) { value in
                     AxisGridLine()
-                    AxisValueLabel(format: .dateTime.month(.abbreviated).day())
+                    if let date = value.as(Date.self) {
+                        AxisValueLabel {
+                            Text(date.formatted(.dateTime.month(.abbreviated).day()))
+                                .font(.caption2)
+                        }
+                    }
                 }
             }
             .chartYAxis {
@@ -132,9 +136,9 @@ struct WorkoutHistoryView: View {
                     SectorMark(
                         angle: .value("Count", item.count),
                         innerRadius: .ratio(0.55),
-                        angularInset: 2
+                        angularInset: 2.0
                     )
-                    .foregroundStyle(by: .value("Category", item.category.rawValue))
+                    .foregroundStyle(categoryColor(item.category))
                     .cornerRadius(4)
                 }
                 .frame(width: 140, height: 140)
