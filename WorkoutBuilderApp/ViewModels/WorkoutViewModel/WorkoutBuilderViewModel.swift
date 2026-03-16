@@ -93,6 +93,73 @@ class WorkoutBuilderViewModel: ObservableObject {
         saveWorkoutsToUserDefaults()
     }
     
+    
+    // MARK: - Completion
+    func completeWorkout(_ workout: Workout) {
+        guard let index = savedWorkouts.firstIndex(where: { $0.id == workout.id }) else { return }
+        savedWorkouts[index].markCompleted()
+        saveWorkoutsToUserDefaults()
+    }
+
+    // MARK: - History Computed Properties
+
+    // All workouts that have been marked complete
+    var completedWorkouts: [Workout] {
+        savedWorkouts
+            .filter { $0.isCompleted }
+            .sorted { ($0.completedDate ?? .distantPast) < ($1.completedDate ?? .distantPast) }
+    }
+
+    // Workouts completed per day for the bar chart
+    // Returns the last 30 days, with 0 for days with no workouts
+    var workoutsPerDay: [(date: Date, count: Int)] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        
+        return (0..<30).reversed().map { daysAgo in
+            let day = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
+            let count = completedWorkouts.filter {
+                guard let completed = $0.completedDate else { return false }
+                return calendar.isDate(completed, inSameDayAs: day)
+            }.count
+            return (date: day, count: count)
+        }
+    }
+
+    // Category breakdown across all completed workouts for the donut chart
+    var categoryBreakdown: [(category: ExerciseCategory, count: Int)] {
+        var counts: [ExerciseCategory: Int] = [:]
+        completedWorkouts
+            .flatMap { $0.exercises }
+            .forEach { counts[$0.exercise.category, default: 0] += 1 }
+        return counts
+            .map { (category: $0.key, count: $0.value) }
+            .sorted { $0.count > $1.count }
+    }
+
+    // Current weekly streak — consecutive weeks with at least one workout
+    var currentStreak: Int {
+        guard !completedWorkouts.isEmpty else { return 0 }
+        let calendar = Calendar.current
+        var streak = 0
+        var weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+        
+        while true {
+            let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart)!
+            let hasWorkout = completedWorkouts.contains {
+                guard let date = $0.completedDate else { return false }
+                return date >= weekStart && date < weekEnd
+            }
+            if hasWorkout {
+                streak += 1
+                weekStart = calendar.date(byAdding: .day, value: -7, to: weekStart)!
+            } else {
+                break
+            }
+        }
+        return streak
+    }
+    
     func loadWorkout(_ workout: Workout) {
         currentWorkout = workout
         isCreatingWorkout = true

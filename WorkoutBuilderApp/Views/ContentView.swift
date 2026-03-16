@@ -9,78 +9,50 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject private var viewModel = WorkoutBuilderViewModel()
-    @State private var showingError = false
-    @State private var showingDebugInfo = false
-    
+
     var body: some View {
-        NavigationView {
-            VStack {
-                // Temporary debug button - remove this after testing
-                Button("🔍 Debug JSON Parsing") {
-                    viewModel.exerciseService.testJSONParsing()
+        TabView {
+            // Tab 1 — Workouts
+            workoutsTab
+                .tabItem {
+                    Label("Workouts", systemImage: "dumbbell")
                 }
-                .padding()
-                .background(Color.blue)
-                .foregroundColor(.white)
-                .cornerRadius(8)
-                
-                if viewModel.isCreatingWorkout {
-                    WorkoutBuilderView(viewModel: viewModel)
-                } else {
-                    HomeView(viewModel: viewModel)
+
+            // Tab 2 — History
+            WorkoutHistoryView(viewModel: viewModel)
+                .tabItem {
+                    Label("History", systemImage: "chart.bar.fill")
                 }
-            }
-        }
-        .onAppear {
-            // Uncomment this line to test automatically when app starts
-            // viewModel.exerciseService.testJSONParsing()
-        }
-        .alert("Error Loading Exercises", isPresented: $showingError) {
-            Button("Retry") {
-                viewModel.refreshExercises()
-            }
-            Button("Continue with Sample Data") {
-                // Continue with sample exercises
-            }
-            Button("Debug Info") {
-                showingDebugInfo = true
-            }
-        } message: {
-            Text(viewModel.exerciseService.errorMessage ?? "An error occurred while loading exercises.")
-        }
-        .alert("Debug Information", isPresented: $showingDebugInfo) {
-            Button("Validate Data") {
-                viewModel.exerciseService.validateExerciseData()
-            }
-            Button("Test JSON Parsing") {
-                viewModel.exerciseService.testJSONParsing()
-            }
-            Button("Clear Cache") {
-                viewModel.exerciseService.clearCache()
-                viewModel.refreshExercises()
-            }
-            Button("OK") { }
-        } message: {
-            Text("Total exercises loaded: \(viewModel.exerciseService.exercises.count)")
-        }
-        .onChange(of: viewModel.exerciseService.errorMessage) { oldValue, newValue in
-            showingError = newValue != nil
         }
         .overlay(alignment: .bottom) {
             if viewModel.exerciseService.isLoading {
-                HStack {
-                    ProgressView()
-                        .scaleEffect(0.8)
-                    Text("Loading exercises...")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
-                .padding()
-                .background(Color(.systemBackground))
-                .cornerRadius(10)
-                .shadow(radius: 2)
-                .padding()
+                loadingBanner
             }
         }
+    }
+
+    // Extracted so the TabView body stays readable
+    private var workoutsTab: some View {
+        Group {
+            if viewModel.isCreatingWorkout {
+                WorkoutBuilderView(viewModel: viewModel)
+            } else {
+                HomeView(viewModel: viewModel)
+            }
+        }
+    }
+
+    private var loadingBanner: some View {
+        HStack {
+            ProgressView().scaleEffect(0.8)
+            Text("Loading exercises...")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding()
+        .background(Color(.systemBackground))
+        .cornerRadius(10)
+        .shadow(radius: 2)
+        .padding()
     }
 }

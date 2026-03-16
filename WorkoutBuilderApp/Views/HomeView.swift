@@ -102,10 +102,13 @@ struct HomeView: View {
             } else {
                 List {
                     ForEach(viewModel.savedWorkouts) { workout in
-                        WorkoutRowView(workout: workout) {
-                            viewModel.loadWorkout(workout)
+                        WorkoutRowView(
+                            workout: workout,
+                            onTap: { viewModel.loadWorkout(workout) },
+                            onComplete: { viewModel.completeWorkout(workout) }
+                        )
                         }
-                    }
+                    
                     .onDelete { indexSet in
                         for index in indexSet {
                             viewModel.deleteWorkout(at: index)
@@ -140,28 +143,52 @@ struct HomeView: View {
 struct WorkoutRowView: View {
     let workout: Workout
     let onTap: () -> Void
-    
-    init(workout: Workout, onTap: @escaping () -> Void) {
-            self.workout = workout
-            self.onTap = onTap
-        }
-    
+    let onComplete: () -> Void  // ← add this
+
+    init(workout: Workout, onTap: @escaping () -> Void, onComplete: @escaping () -> Void) {
+        self.workout = workout
+        self.onTap = onTap
+        self.onComplete = onComplete
+    }
+
     var body: some View {
         Button(action: onTap) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Text(workout.name)
-                        .font(.headline)
-                        .foregroundColor(.primary)
-                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(workout.name)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+
+                        Text("Created: \(workout.createdDate.formatted(date: .abbreviated, time: .omitted))")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+
                     Spacer()
-                    
-                    Text("\(workout.exercises.count) exercises")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
+
+                    // Show a checkmark if already completed, button if not
+                    if workout.isCompleted {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.title3)
+                    } else {
+                        Button(action: onComplete) {
+                            Text("Complete")
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 5)
+                                .background(Color.green.opacity(0.15))
+                                .foregroundColor(.green)
+                                .cornerRadius(8)
+                        }
+                        // Stop the Complete tap from also triggering the row tap
+                        .buttonStyle(BorderlessButtonStyle())
+                    }
                 }
-                
-                Text("Created: \(workout.createdDate.formatted(date: .abbreviated, time: .omitted))")
+
+                Text("\(workout.exercises.count) exercises")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

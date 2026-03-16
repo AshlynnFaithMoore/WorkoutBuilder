@@ -32,6 +32,8 @@ struct Workout: Identifiable, Codable {
     var exercises: [WorkoutExercise]
     let createdDate: Date
     var lastModified: Date
+    var completedDate: Date? = nil
+
     
     init(name: String, exercises: [WorkoutExercise] = []) {
         self.name = name
@@ -50,4 +52,12 @@ struct Workout: Identifiable, Codable {
         exercises.remove(at: index)
         lastModified = Date()
     }
+    
+    mutating func markCompleted() {
+            completedDate = Date()
+        }
+
+        var isCompleted: Bool {
+            completedDate != nil
+        }
 }
