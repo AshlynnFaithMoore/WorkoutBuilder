@@ -291,6 +291,7 @@ struct HIITTimerCustomizationView: View {
             }
         }
         .onAppear {
+            Task { await HealthKitManager.shared.requestAuthorization() }
             customTimerName = timerViewModel.timer.name
             selectedIntervalSound = timerViewModel.timer.intervalSound
             selectedCompletionSound = timerViewModel.timer.completionSound

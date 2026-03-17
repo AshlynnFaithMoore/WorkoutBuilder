@@ -27,8 +27,8 @@ class HIITTimerViewModel: ObservableObject {
     
     init() {
         setupAudioSession()
+        print("Bundle wav files:", Bundle.main.paths(forResourcesOfType: "wav", inDirectory: nil))
         preloadSounds()
-        Task { await healthKit.requestAuthorization() }
     }
     
     // MARK: - Timer Configuration
