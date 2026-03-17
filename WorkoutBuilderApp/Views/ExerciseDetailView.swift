@@ -7,46 +7,76 @@
 
 import SwiftUI
 
-// MARK: - GIF Support
-// SwiftUI doesn't support animated GIFs natively.
-// This wraps UIImageView which handles GIF animation on iOS.
-struct GIFImageView: UIViewRepresentable {
-    let url: URL
+// MARK: - Animated Exercise Image
+// Fetches both images for an exercise and crossfades between them
+// to simulate a GIF effect. Works with the free-exercise-db which
+// stores two static images per exercise (start and end position).
+struct AnimatedExerciseImage: View {
+    let urls: [URL]
     
-    func makeUIView(context: Context) -> UIImageView {
-        let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFit
-        imageView.clipsToBounds = true
-        return imageView
-    }
+    @State private var images: [UIImage] = []
+    @State private var currentIndex = 0
+    @State private var isLoading = true
     
-    func updateUIView(_ imageView: UIImageView, context: Context) {
-        // Fetch the GIF data asynchronously so we don't block the UI
-        Task {
-            do {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                // UIImage(data:) handles animated GIFs automatically on iOS
-                await MainActor.run {
-                    imageView.image = UIImage.animatedImage(
-                        with: UIImage.animatedImages(data: data),
-                        duration: 1.0
-                    )
+    var body: some View {
+        ZStack {
+            if images.isEmpty && isLoading {
+                // Loading state
+                ZStack {
+                    Color(.systemGray6)
+                    ProgressView()
                 }
-            } catch {
-                print("Failed to load GIF: \(error)")
+            } else if images.isEmpty {
+                // Failed to load
+                ZStack {
+                    Color(.systemGray6)
+                    VStack(spacing: 8) {
+                        Image(systemName: "figure.strengthtraining.traditional")
+                            .font(.system(size: 60))
+                            .foregroundColor(.gray)
+                        Text("No image available")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            } else {
+                // Show current frame with crossfade
+                Image(uiImage: images[currentIndex])
+                    .resizable()
+                    .scaledToFit()
+                    .transition(.opacity)
+                    .id(currentIndex) // forces SwiftUI to animate between frames
             }
         }
+        .task {
+            await loadImages()
+            startAnimation()
+        }
     }
-}
-
-// Helper to decode animated GIF frames from raw data
-private extension UIImage {
-    static func animatedImages(data: Data) -> [UIImage] {
-        guard let source = CGImageSourceCreateWithData(data as CFData, nil) else { return [] }
-        let count = CGImageSourceGetCount(source)
-        return (0..<count).compactMap { index in
-            guard let cgImage = CGImageSourceCreateImageAtIndex(source, index, nil) else { return nil }
-            return UIImage(cgImage: cgImage)
+    
+    private func loadImages() async {
+        var loaded: [UIImage] = []
+        for url in urls {
+            if let (data, _) = try? await URLSession.shared.data(from: url),
+               let image = UIImage(data: data) {
+                loaded.append(image)
+            }
+        }
+        await MainActor.run {
+            images = loaded
+            isLoading = false
+        }
+    }
+    
+    private func startAnimation() {
+        // Only animate if we have more than one image
+        guard urls.count > 1 else { return }
+        
+        Timer.scheduledTimer(withTimeInterval: 1.2, repeats: true) { _ in
+            guard !images.isEmpty else { return }
+            withAnimation(.easeInOut(duration: 0.4)) {
+                currentIndex = (currentIndex + 1) % images.count
+            }
         }
     }
 }
@@ -66,9 +96,16 @@ struct ExerciseDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
                     
+                    // MARK: Title (full name, no truncation)
+                    Text(exercise.name)
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .padding(.horizontal)
+                        .padding(.top, 8)
+
                     // MARK: GIF / Image
                     gifSection
-                    
+
                     VStack(alignment: .leading, spacing: 24) {
                         // MARK: Quick Stats Row
                         quickStatsRow
@@ -89,6 +126,7 @@ struct ExerciseDetailView: View {
                         instructionsSection
                     }
                     .padding(.horizontal)
+                    .padding(.bottom, 80) // prevent Add button from covering last instruction
                     
                     // MARK: Add to Workout Button
                     if let onAdd = onAdd {
@@ -112,8 +150,8 @@ struct ExerciseDetailView: View {
                     }
                 }
             }
-            .navigationTitle(exercise.name)
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("Done") { dismiss() }
@@ -126,14 +164,11 @@ struct ExerciseDetailView: View {
     
     private var gifSection: some View {
         Group {
-            if let firstImage = exercise.imageURLs.first,
-               let url = URL(string: imageBaseURL + firstImage) {
-                GIFImageView(url: url)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 280)
-                    .background(Color(.systemGray6))
-            } else {
-                // Fallback when no image is available
+            let urls = exercise.imageURLs.compactMap {
+                URL(string: imageBaseURL + $0)
+            }
+            
+            if urls.isEmpty {
                 ZStack {
                     Color(.systemGray6)
                     VStack(spacing: 8) {
@@ -147,6 +182,11 @@ struct ExerciseDetailView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .frame(height: 280)
+            } else {
+                AnimatedExerciseImage(urls: urls)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 280)
+                    .background(Color(.systemGray6))
             }
         }
     }
@@ -257,9 +297,11 @@ struct ExerciseDetailView: View {
                 .foregroundColor(color)
                 .font(.caption)
             Text(value)
-                .font(.subheadline)
+                .font(.caption)
                 .fontWeight(.semibold)
                 .multilineTextAlignment(.center)
+                .minimumScaleFactor(0.7)
+                .lineLimit(2)
             Text(label)
                 .font(.caption2)
                 .foregroundColor(.secondary)
@@ -301,7 +343,7 @@ struct ExerciseDetailView: View {
 
 // MARK: - Flow Layout
 // A simple tag cloud layout that wraps items onto new lines
-// when they don't fit — SwiftUI doesn't have this built in until iOS 16
+// when they don't fit — SwiftUI doesn't have this built in until iOS 16 (womp womp)
 struct FlowLayout<Item: Hashable, Content: View>: View {
     let items: [Item]
     let content: (Item) -> Content
