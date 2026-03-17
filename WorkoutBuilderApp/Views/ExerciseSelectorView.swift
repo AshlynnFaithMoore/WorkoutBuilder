@@ -8,13 +8,13 @@
 
 // ExerciseSelectorView.swift
 // Exercise selection view - Shows exercises to add to workout
-
 import SwiftUI
 
 struct ExerciseSelectorView: View {
     @ObservedObject var viewModel: WorkoutBuilderViewModel
     @Environment(\.dismiss) private var dismiss
-    
+    @State private var selectedExercise: Exercise?
+
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
@@ -24,7 +24,6 @@ struct ExerciseSelectorView: View {
                         .foregroundColor(.secondary)
                     TextField("Search by name, muscle, or equipment", text: $viewModel.searchText)
                         .autocorrectionDisabled()
-                    
                     if !viewModel.searchText.isEmpty {
                         Button(action: { viewModel.searchText = "" }) {
                             Image(systemName: "xmark.circle.fill")
@@ -37,34 +36,28 @@ struct ExerciseSelectorView: View {
                 .cornerRadius(10)
                 .padding(.horizontal)
                 .padding(.vertical, 8)
-                
+
                 // Category Filter
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack {
-                        Button("All") {
-                            viewModel.selectedCategory = nil
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
-                        .background(viewModel.selectedCategory == nil ? Color.blue : Color(.systemGray5))
-                        .foregroundColor(viewModel.selectedCategory == nil ? .white : .primary)
-                        .cornerRadius(20)
-                        
-                        ForEach(ExerciseCategory.allCases, id: \.self) { category in
-                            Button(category.rawValue) {
-                                viewModel.selectedCategory = category
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(viewModel.selectedCategory == category ? Color.blue : Color(.systemGray5))
-                            .foregroundColor(viewModel.selectedCategory == category ? .white : .primary)
+                        Button("All") { viewModel.selectedCategory = nil }
+                            .padding(.horizontal, 16).padding(.vertical, 8)
+                            .background(viewModel.selectedCategory == nil ? Color.blue : Color(.systemGray5))
+                            .foregroundColor(viewModel.selectedCategory == nil ? .white : .primary)
                             .cornerRadius(20)
+
+                        ForEach(ExerciseCategory.allCases, id: \.self) { category in
+                            Button(category.rawValue) { viewModel.selectedCategory = category }
+                                .padding(.horizontal, 16).padding(.vertical, 8)
+                                .background(viewModel.selectedCategory == category ? Color.blue : Color(.systemGray5))
+                                .foregroundColor(viewModel.selectedCategory == category ? .white : .primary)
+                                .cornerRadius(20)
                         }
                     }
                     .padding(.horizontal)
                 }
                 .padding(.bottom, 8)
-                
+
                 // Results count
                 if !viewModel.searchText.isEmpty {
                     HStack {
@@ -76,7 +69,7 @@ struct ExerciseSelectorView: View {
                     .padding(.horizontal)
                     .padding(.bottom, 4)
                 }
-                
+
                 // Exercise List
                 if viewModel.filteredExercises.isEmpty {
                     VStack(spacing: 12) {
@@ -85,35 +78,30 @@ struct ExerciseSelectorView: View {
                             .font(.system(size: 40))
                             .foregroundColor(.gray)
                         Text("No exercises found")
-                            .font(.headline)
-                            .foregroundColor(.gray)
+                            .font(.headline).foregroundColor(.gray)
                         Text("Try a different search term or category")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(.subheadline).foregroundColor(.secondary)
                         Spacer()
                     }
                 } else {
                     List(viewModel.filteredExercises) { exercise in
-                        Button(action: {
-                            viewModel.addExerciseToCurrentWorkout(exercise)
-                            dismiss()
-                        }) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(exercise.name)
-                                    .font(.headline)
-                                    .foregroundColor(.primary)
-                                
-                                Text(exercise.description)
-                                    .font(.body)
-                                    .foregroundColor(.secondary)
-                                
-                                Text(exercise.category.rawValue)
+                        Button(action: { selectedExercise = exercise }) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(exercise.name)
+                                        .font(.headline)
+                                        .foregroundColor(.primary)
+                                    Text(exercise.category.rawValue)
+                                        .font(.caption)
+                                        .padding(.horizontal, 8).padding(.vertical, 2)
+                                        .background(Color.blue.opacity(0.2))
+                                        .foregroundColor(.blue)
+                                        .cornerRadius(4)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
                                     .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(Color.blue.opacity(0.2))
-                                    .foregroundColor(.blue)
-                                    .cornerRadius(4)
+                                    .foregroundColor(.secondary)
                             }
                             .padding(.vertical, 4)
                         }
@@ -125,14 +113,19 @@ struct ExerciseSelectorView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+                    Button("Done") { dismiss() }
                 }
             }
+            .sheet(item: $selectedExercise) { exercise in
+                ExerciseDetailView(
+                    exercise: exercise,
+                    onAdd: {
+                        viewModel.addExerciseToCurrentWorkout(exercise)
+                        dismiss()
+                    }
+                )
+            }
             .onDisappear {
-                // Clear search state when sheet closes so it
-                // doesn't persist into the next time it opens
                 viewModel.searchText = ""
                 viewModel.selectedCategory = nil
             }
