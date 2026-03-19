@@ -27,8 +27,8 @@ class HIITTimerViewModel: ObservableObject {
     
     init() {
         setupAudioSession()
-        print("Bundle wav files:", Bundle.main.paths(forResourcesOfType: "wav", inDirectory: nil))
         preloadSounds()
+        Task { await healthKit.requestAuthorization() }
     }
     
     // MARK: - Timer Configuration
@@ -46,7 +46,19 @@ class HIITTimerViewModel: ObservableObject {
     func updateIntervalSound(_ sound: HIITSoundOption) { timer.intervalSound = sound }
     func updateCompletionSound(_ sound: HIITSoundOption) { timer.completionSound = sound }
     
-    // MARK: - Timer Control
+    // Add these two new config methods after updateCompletionSound()
+    func updateMode(_ mode: HIITTimerMode) {
+        timer.mode = mode
+    }
+    
+    func updateWorkDuration(_ duration: TimeInterval) {
+        timer.workDuration = duration
+        if !timer.isActive { timer.intervalTimeRemaining = duration }
+    }
+    
+    func updateRestDuration(_ duration: TimeInterval) {
+        timer.restDuration = duration
+    }
     func startTimer() {
         sessionStartDate = Date()
         heartRateSamples = []
@@ -90,16 +102,12 @@ class HIITTimerViewModel: ObservableObject {
     private func updateTimer() {
         guard timer.isActive && !timer.isPaused else { return }
         
-        timer.timeRemaining -= 1
-        timer.intervalTimeRemaining -= 1
-        
-        if timer.intervalTimeRemaining <= 0 {
+        switch timer.tick() {
+        case .ticking:
+            break
+        case .intervalCompleted:
             playSound(timer.intervalSound)
-            timer.currentInterval += 1
-            timer.intervalTimeRemaining = timer.intervalDuration
-        }
-        
-        if timer.timeRemaining <= 0 {
+        case .completed:
             completeTimer()
         }
     }

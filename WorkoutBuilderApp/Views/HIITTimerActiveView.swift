@@ -12,10 +12,16 @@ struct HIITTimerActiveView: View {
     @ObservedObject var timerViewModel: HIITTimerViewModel
     @Environment(\.dismiss) private var dismiss
     
+    // Phase color drives the accent color throughout the view
+    private var phaseColor: Color {
+        guard timerViewModel.timer.mode == .workRest else { return .blue }
+        return timerViewModel.timer.currentPhase == .work ? .red : .blue
+    }
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 32) {
-                // Timer Name
+                // Timer name
                 Text(timerViewModel.timer.name)
                     .font(.title2)
                     .fontWeight(.semibold)
@@ -23,20 +29,18 @@ struct HIITTimerActiveView: View {
                 
                 Spacer()
                 
-                // Main Timer Display
                 VStack(spacing: 24) {
-                    // Total Time Remaining
+                    // Total time remaining
                     VStack(spacing: 8) {
                         Text("Total Time Remaining")
                             .font(.headline)
                             .foregroundColor(.secondary)
-                        
                         Text(HIITTimer.formatTimeForTimer(timerViewModel.timer.timeRemaining))
                             .font(.system(size: 48, weight: .bold, design: .monospaced))
                             .foregroundColor(.primary)
                     }
                     
-                    // Progress Ring for Total Time
+                    // Progress ring — color changes with phase
                     ZStack {
                         Circle()
                             .stroke(Color(.systemGray5), lineWidth: 8)
@@ -44,28 +48,41 @@ struct HIITTimerActiveView: View {
                         
                         Circle()
                             .trim(from: 0, to: timerViewModel.timer.progressPercentage)
-                            .stroke(Color.blue, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                            .stroke(phaseColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                             .frame(width: 200, height: 200)
                             .rotationEffect(.degrees(-90))
                             .animation(.linear(duration: 1), value: timerViewModel.timer.progressPercentage)
                         
                         VStack(spacing: 4) {
+                            // Show phase badge in work/rest mode
+                            if timerViewModel.timer.mode == .workRest {
+                                Text(timerViewModel.timer.currentPhase.displayName)
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(phaseColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            
                             Text("Interval \(timerViewModel.timer.currentInterval)")
                                 .font(.headline)
                                 .foregroundColor(.secondary)
-                            
                             Text("of \(timerViewModel.timer.totalIntervals)")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
                     
-                    // Current Interval Progress
+                    // Current interval progress bar
                     VStack(spacing: 12) {
                         HStack {
-                            Text("Current Interval")
+                            Text(timerViewModel.timer.mode == .workRest
+                                 ? timerViewModel.timer.currentPhase.displayName
+                                 : "Current Interval")
                                 .font(.headline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(timerViewModel.timer.mode == .workRest ? phaseColor : .secondary)
                             
                             Spacer()
                             
@@ -74,7 +91,6 @@ struct HIITTimerActiveView: View {
                                 .fontWeight(.semibold)
                         }
                         
-                        // Interval Progress Bar
                         GeometryReader { geometry in
                             ZStack(alignment: .leading) {
                                 Rectangle()
@@ -83,8 +99,11 @@ struct HIITTimerActiveView: View {
                                     .cornerRadius(4)
                                 
                                 Rectangle()
-                                    .fill(Color.green)
-                                    .frame(width: geometry.size.width * timerViewModel.timer.intervalProgressPercentage, height: 8)
+                                    .fill(phaseColor)
+                                    .frame(
+                                        width: geometry.size.width * timerViewModel.timer.intervalProgressPercentage,
+                                        height: 8
+                                    )
                                     .cornerRadius(4)
                                     .animation(.linear(duration: 1), value: timerViewModel.timer.intervalProgressPercentage)
                             }
@@ -96,55 +115,31 @@ struct HIITTimerActiveView: View {
                 
                 Spacer()
                 
-                // Control Buttons
+                // Control buttons
                 HStack(spacing: 24) {
-                    // Stop Button
-                    Button(action: {
+                    controlButton(
+                        icon: "stop.fill",
+                        label: "Stop",
+                        color: .red
+                    ) {
                         timerViewModel.stopTimer()
                         dismiss()
-                    }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "stop.fill")
-                                .font(.title2)
-                            Text("Stop")
-                                .font(.caption)
-                        }
-                        .foregroundColor(.red)
-                        .frame(width: 80, height: 80)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(40)
                     }
                     
-                    // Pause/Resume Button
-                    Button(action: {
+                    controlButton(
+                        icon: timerViewModel.timer.isPaused ? "play.fill" : "pause.fill",
+                        label: timerViewModel.timer.isPaused ? "Resume" : "Pause",
+                        color: .blue
+                    ) {
                         timerViewModel.pauseTimer()
-                    }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: timerViewModel.timer.isPaused ? "play.fill" : "pause.fill")
-                                .font(.title2)
-                            Text(timerViewModel.timer.isPaused ? "Resume" : "Pause")
-                                .font(.caption)
-                        }
-                        .foregroundColor(.blue)
-                        .frame(width: 80, height: 80)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(40)
                     }
                     
-                    // Reset Button
-                    Button(action: {
+                    controlButton(
+                        icon: "arrow.counterclockwise",
+                        label: "Reset",
+                        color: .orange
+                    ) {
                         timerViewModel.resetTimer()
-                    }) {
-                        VStack(spacing: 8) {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.title2)
-                            Text("Reset")
-                                .font(.caption)
-                        }
-                        .foregroundColor(.orange)
-                        .frame(width: 80, height: 80)
-                        .background(Color.orange.opacity(0.1))
-                        .cornerRadius(40)
                     }
                 }
                 
@@ -161,24 +156,23 @@ struct HIITTimerActiveView: View {
                 }
             }
         }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willResignActiveNotification)) { _ in
-                    // Handle app going to background - could add local notifications here
-                }
-                .onAppear {
-                    // Ensure the timer is properly initialized when view appears
-                    if !timerViewModel.timer.isActive {
-                        timerViewModel.resetTimer()
-                    }
+        .onAppear {
+            if !timerViewModel.timer.isActive {
+                timerViewModel.resetTimer()
+            }
         }
     }
-}
-
-#Preview {
-    let viewModel = HIITTimerViewModel()
-    viewModel.timer.timeRemaining = 300
-    viewModel.timer.intervalTimeRemaining = 25
-    viewModel.timer.currentInterval = 3
-    viewModel.timer.isActive = true
     
-    return HIITTimerActiveView(timerViewModel: viewModel)
+    private func controlButton(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon).font(.title2)
+                Text(label).font(.caption)
+            }
+            .foregroundColor(color)
+            .frame(width: 80, height: 80)
+            .background(color.opacity(0.1))
+            .cornerRadius(40)
+        }
+    }
 }
