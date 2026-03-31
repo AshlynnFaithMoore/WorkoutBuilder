@@ -57,8 +57,7 @@ struct AnimatedExerciseImage: View {
     private func loadImages() async {
         var loaded: [UIImage] = []
         for url in urls {
-            if let (data, _) = try? await URLSession.shared.data(from: url),
-               let image = UIImage(data: data) {
+            if let image = await ImageCache.shared.image(for: url) {
                 loaded.append(image)
             }
         }
@@ -164,8 +163,10 @@ struct ExerciseDetailView: View {
     
     private var gifSection: some View {
         Group {
-            let urls = exercise.imageURLs.compactMap {
-                URL(string: imageBaseURL + $0)
+            let urls = exercise.imageURLs.compactMap { path -> URL? in
+                guard let url = URL(string: imageBaseURL + path) else { return nil }
+                guard ImageCache.isValid(url: url) else { return nil }
+                return url
             }
             
             if urls.isEmpty {
@@ -343,7 +344,7 @@ struct ExerciseDetailView: View {
 
 // MARK: - Flow Layout
 // A simple tag cloud layout that wraps items onto new lines
-// when they don't fit — SwiftUI doesn't have this built in until iOS 16 (womp womp)
+// when they don't fit -- SwiftUI doesn't have this built in until iOS 16 (womp womp)
 struct FlowLayout<Item: Hashable, Content: View>: View {
     let items: [Item]
     let content: (Item) -> Content
