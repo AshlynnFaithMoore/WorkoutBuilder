@@ -3,6 +3,7 @@
 //  WorkoutBuilderApp
 //
 //  Created by Ashlynn Moore on 6/21/25.
+
 import SwiftUI
 //
 
@@ -119,6 +120,9 @@ struct HomeView: View {
         }
         .alert("New Workout", isPresented: $showingNewWorkoutDialog) {
             TextField("Workout Name", text: $newWorkoutName)
+                .onChange(of: newWorkoutName) { _, newValue in
+                    if newValue.count > 100 { newWorkoutName = String(newValue.prefix(100)) }
+                }
             Button("Create") {
                 if !newWorkoutName.isEmpty {
                     viewModel.startNewWorkout(name: newWorkoutName)
@@ -201,3 +205,5 @@ struct WorkoutRowView: View {
         .buttonStyle(PlainButtonStyle())
     }
 }
+
+

@@ -6,6 +6,7 @@
 //
 
 
+
 import SwiftUI
 
 struct HIITTimerCustomizationView: View {
@@ -45,6 +46,9 @@ struct HIITTimerCustomizationView: View {
                                 .font(.headline)
                             TextField("Enter timer name", text: $customTimerName)
                                 .textFieldStyle(RoundedBorderTextFieldStyle())
+                                .onChange(of: customTimerName) { _, newValue in
+                                    if newValue.count > 100 { customTimerName = String(newValue.prefix(100)) }
+                                }
                         }
                         .padding(.horizontal)
                         
@@ -67,7 +71,7 @@ struct HIITTimerCustomizationView: View {
                         }
                         .padding(.horizontal)
                         
-                        // MARK: Interval Config — shown based on mode
+                        // MARK: Interval Config -- shown based on mode
                         if selectedMode == .uniform {
                             uniformIntervalSection
                         } else {
@@ -351,3 +355,5 @@ struct HIITTimerCustomizationView: View {
         timerViewModel.startTimer()
     }
 }
+
+
