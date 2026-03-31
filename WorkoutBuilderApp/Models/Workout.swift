@@ -1,63 +1,68 @@
 //
-//  WorkoutExercise.swift
+//  Workout.swift
 //  WorkoutBuilderApp
 //
 //  Created by Ashlynn Moore on 6/25/25.
 //
 
-
-// Workout.swift
-// Model file - Contains workout-related data structures
-
 import Foundation
+import SwiftData
 
-struct WorkoutExercise: Identifiable, Codable {
-    var id = UUID()
-    let exercise: Exercise
+@Model
+final class WorkoutExercise {
+    /// JSON-encoded snapshot of the Exercise at the time it was added.
+    var exerciseData: Data
     var sets: Int
     var reps: Int
-    var duration: Int // in seconds, 0 if not applicable
-    
+    var duration: Int
+
+    var workout: Workout?
+
+    /// Reconstructs the Exercise struct from stored JSON.
+    var exercise: Exercise {
+        (try? JSONDecoder().decode(Exercise.self, from: exerciseData))
+            ?? Exercise(name: "Unknown", category: .other, description: "Exercise data unavailable")
+    }
+
     init(exercise: Exercise, sets: Int = 3, reps: Int = 10, duration: Int = 0) {
-        self.exercise = exercise
+        self.exerciseData = (try? JSONEncoder().encode(exercise)) ?? Data()
         self.sets = sets
         self.reps = reps
         self.duration = duration
     }
 }
 
-struct Workout: Identifiable, Codable {
-    var id = UUID()
+@Model
+final class Workout {
     var name: String
+    @Relationship(deleteRule: .cascade, inverse: \WorkoutExercise.workout)
     var exercises: [WorkoutExercise]
-    let createdDate: Date
+    var createdDate: Date
     var lastModified: Date
-    var completedDate: Date? = nil
+    var completedDate: Date?
 
-    
+    var isCompleted: Bool { completedDate != nil }
+
     init(name: String, exercises: [WorkoutExercise] = []) {
         self.name = name
         self.exercises = exercises
         self.createdDate = Date()
         self.lastModified = Date()
     }
-    
-    mutating func addExercise(_ exercise: Exercise) {
+
+    func addExercise(_ exercise: Exercise) {
         let workoutExercise = WorkoutExercise(exercise: exercise)
         exercises.append(workoutExercise)
         lastModified = Date()
     }
-    
-    mutating func removeExercise(at index: Int) {
+
+    func removeExercise(at index: Int) {
         exercises.remove(at: index)
         lastModified = Date()
     }
-    
-    mutating func markCompleted() {
-            completedDate = Date()
-        }
 
-        var isCompleted: Bool {
-            completedDate != nil
-        }
+    func markCompleted() {
+        completedDate = Date()
+    }
 }
+
