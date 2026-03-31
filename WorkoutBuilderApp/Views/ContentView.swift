@@ -8,17 +8,18 @@
 import SwiftUI
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var viewModel = WorkoutBuilderViewModel()
 
     var body: some View {
         TabView {
-            // Tab 1 — Workouts
+            // Tab 1 -- Workouts
             workoutsTab
                 .tabItem {
                     Label("Workouts", systemImage: "dumbbell")
                 }
 
-            // Tab 2 — History
+            // Tab 2 -- History
             WorkoutHistoryView(viewModel: viewModel)
                 .tabItem {
                     Label("History", systemImage: "chart.bar.fill")
@@ -28,6 +29,9 @@ struct ContentView: View {
             if viewModel.exerciseService.isLoading {
                 loadingBanner
             }
+        }
+        .onAppear {
+            viewModel.configure(with: modelContext)
         }
     }
 
