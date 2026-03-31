@@ -2,11 +2,11 @@
 //  ExerciseService.swift
 //  WorkoutBuilderApp
 //
-//  Created by Ashlynn Moore on 7/11/25.
+//  Created by Ashlynn Moore on 3/31/26.
 //
 
-
 import Foundation
+
 
 // for testing purposes
 protocol URLSessionProtocol {
@@ -201,3 +201,6 @@ enum ExerciseServiceError: Error {
     case invalidResponse
     case httpError(Int)
 }
+
+
+

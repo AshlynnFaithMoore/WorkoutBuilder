@@ -91,7 +91,7 @@ struct ExerciseServiceTests {
         let session = MockURLSession(data: makeExerciseJSON(), statusCode: 200)
         let service = ExerciseService(session: session)
         
-        // Act — wait for the async fetch to complete
+        // Act: wait for the async fetch to complete
         await service.fetchExercises()
         
         // Assert
