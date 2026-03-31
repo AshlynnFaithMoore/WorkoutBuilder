@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		EA4C23AF2F7C6EB700E68A08 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = EA4C23AE2F7C6EB700E68A08 /* README.md */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		EA77D2CE2DFD3EE3007AA2DE /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,6 +28,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		EA4C23AE2F7C6EB700E68A08 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
 		EA77D2B92DFD3EE1007AA2DE /* WorkoutBuilderApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = WorkoutBuilderApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA77D2CD2DFD3EE3007AA2DE /* WorkoutBuilderAppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WorkoutBuilderAppTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EA77D2D72DFD3EE3007AA2DE /* WorkoutBuilderAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = WorkoutBuilderAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +80,7 @@
 		EA77D2B02DFD3EE1007AA2DE = {
 			isa = PBXGroup;
 			children = (
+				EA4C23AE2F7C6EB700E68A08 /* README.md */,
 				EA77D2BB2DFD3EE1007AA2DE /* WorkoutBuilderApp */,
 				EA77D2D02DFD3EE3007AA2DE /* WorkoutBuilderAppTests */,
 				EA77D2DA2DFD3EE3007AA2DE /* WorkoutBuilderAppUITests */,
@@ -212,6 +218,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EA4C23AF2F7C6EB700E68A08 /* README.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
