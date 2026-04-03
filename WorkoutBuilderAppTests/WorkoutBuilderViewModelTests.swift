@@ -8,6 +8,7 @@
 
 import Testing
 import Foundation
+import SwiftData
 @testable import WorkoutBuilderApp
 
 // MARK: - Helpers
@@ -31,13 +32,23 @@ private let secondExercise = Exercise(
     level: "beginner"
 )
 
+/// Creates a WorkoutBuilderViewModel backed by an in-memory SwiftData store.
+private func makeViewModel() -> WorkoutBuilderViewModel {
+    let schema = Schema([Workout.self, WorkoutExercise.self])
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(for: schema, configurations: [config])
+    let vm = WorkoutBuilderViewModel()
+    vm.configure(with: container.mainContext)
+    return vm
+}
+
 struct WorkoutBuilderViewModelTests {
 
     // MARK: - Starting a New Workout
 
     @Test func startNewWorkoutSetsCurrentWorkout() {
         // Arrange
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
 
         // Act
         vm.startNewWorkout(name: "Leg Day")
@@ -49,7 +60,7 @@ struct WorkoutBuilderViewModelTests {
     }
 
     @Test func startNewWorkoutBeginsWithNoExercises() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Empty Workout")
 
         #expect(vm.currentWorkout?.exercises.isEmpty == true)
@@ -58,7 +69,7 @@ struct WorkoutBuilderViewModelTests {
     @Test func startingTwoWorkoutsReplacesTheFirst() {
         // If a user starts a new workout while one is in progress,
         // the second one should replace the first
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "First")
         vm.startNewWorkout(name: "Second")
 
@@ -68,7 +79,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Adding Exercises
 
     @Test func addExerciseAppendsToCurrentWorkout() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test Workout")
 
         vm.addExerciseToCurrentWorkout(sampleExercise)
@@ -78,7 +89,7 @@ struct WorkoutBuilderViewModelTests {
     }
 
     @Test func addMultipleExercisesPreservesOrder() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test Workout")
 
         vm.addExerciseToCurrentWorkout(sampleExercise)
@@ -91,14 +102,14 @@ struct WorkoutBuilderViewModelTests {
 
     @Test func addExerciseDoesNothingWithNoActiveWorkout() {
         // Shouldn't crash if called before startNewWorkout
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.addExerciseToCurrentWorkout(sampleExercise)
 
         #expect(vm.currentWorkout == nil)
     }
 
     @Test func addedExerciseHasDefaultSetsAndReps() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test")
         vm.addExerciseToCurrentWorkout(sampleExercise)
 
@@ -111,7 +122,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Removing Exercises
 
     @Test func removeExerciseDeletesAtCorrectIndex() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test")
         vm.addExerciseToCurrentWorkout(sampleExercise)
         vm.addExerciseToCurrentWorkout(secondExercise)
@@ -125,7 +136,7 @@ struct WorkoutBuilderViewModelTests {
     }
 
     @Test func removeLastExerciseLeavesEmptyList() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test")
         vm.addExerciseToCurrentWorkout(sampleExercise)
         vm.removeExerciseFromCurrentWorkout(at: 0)
@@ -136,7 +147,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Updating Exercises
 
     @Test func updateExerciseChangesCorrectValues() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test")
         vm.addExerciseToCurrentWorkout(sampleExercise)
 
@@ -150,7 +161,7 @@ struct WorkoutBuilderViewModelTests {
 
     @Test func updateExerciseAtInvalidIndexDoesNotCrash() {
         // Out of bounds index should be silently ignored
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test")
 
         // No exercises added, index 0 is out of bounds
@@ -160,7 +171,7 @@ struct WorkoutBuilderViewModelTests {
     }
 
     @Test func updateExerciseOnlyChangesTargetIndex() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Test")
         vm.addExerciseToCurrentWorkout(sampleExercise)
         vm.addExerciseToCurrentWorkout(secondExercise)
@@ -177,7 +188,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Saving Workouts
 
     @Test func saveWorkoutAppendsToSavedWorkouts() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Push Day")
         vm.addExerciseToCurrentWorkout(sampleExercise)
 
@@ -188,7 +199,7 @@ struct WorkoutBuilderViewModelTests {
     }
 
     @Test func saveWorkoutClearsCurrentWorkout() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Push Day")
         vm.addExerciseToCurrentWorkout(sampleExercise)
         vm.saveCurrentWorkout()
@@ -200,7 +211,7 @@ struct WorkoutBuilderViewModelTests {
     @Test func saveEmptyWorkoutDoesNotSave() {
         // The Save button is disabled when exercises is empty,
         // but the ViewModel should also handle this defensively
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.startNewWorkout(name: "Empty")
 
         // Don't add any exercises, try to save
@@ -211,7 +222,7 @@ struct WorkoutBuilderViewModelTests {
     }
 
     @Test func canSaveMultipleWorkouts() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
 
         vm.startNewWorkout(name: "Push Day")
         vm.addExerciseToCurrentWorkout(sampleExercise)
@@ -227,7 +238,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Deleting Workouts
 
     @Test func deleteWorkoutRemovesAtCorrectIndex() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
 
         vm.startNewWorkout(name: "Push Day")
         vm.addExerciseToCurrentWorkout(sampleExercise)
@@ -246,7 +257,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Loading a Workout
 
     @Test func loadWorkoutSetCurrentWorkout() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
 
         vm.startNewWorkout(name: "Push Day")
         vm.addExerciseToCurrentWorkout(sampleExercise)
@@ -263,7 +274,7 @@ struct WorkoutBuilderViewModelTests {
     // MARK: - Filtering
 
     @Test func clearFiltersResetsAllFilterState() {
-        let vm = WorkoutBuilderViewModel()
+        let vm = makeViewModel()
         vm.selectedCategory = .chest
         vm.selectedEquipment = "barbell"
         vm.selectedLevel = "beginner"
@@ -275,5 +286,42 @@ struct WorkoutBuilderViewModelTests {
         #expect(vm.selectedEquipment == nil)
         #expect(vm.selectedLevel == nil)
         #expect(vm.searchText == "")
+    }
+
+    // MARK: - Persistence Round-Trip
+
+    @Test func savedWorkoutsPersistAcrossViewModelInstances() {
+        let schema = Schema([Workout.self, WorkoutExercise.self])
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        let container = try! ModelContainer(for: schema, configurations: [config])
+
+        // Save with one ViewModel instance
+        let vm1 = WorkoutBuilderViewModel()
+        vm1.configure(with: container.mainContext)
+        vm1.startNewWorkout(name: "Persisted Workout")
+        vm1.addExerciseToCurrentWorkout(sampleExercise)
+        vm1.saveCurrentWorkout()
+
+        // Load with a new ViewModel pointing to the same container
+        let vm2 = WorkoutBuilderViewModel()
+        vm2.configure(with: container.mainContext)
+
+        #expect(vm2.savedWorkouts.count == 1)
+        #expect(vm2.savedWorkouts.first?.name == "Persisted Workout")
+    }
+
+    // MARK: - Workout Completion
+
+    @Test func completingWorkoutSetsCompletedDate() {
+        let vm = makeViewModel()
+        vm.startNewWorkout(name: "Workout")
+        vm.addExerciseToCurrentWorkout(sampleExercise)
+        vm.saveCurrentWorkout()
+
+        let workout = vm.savedWorkouts.first!
+        vm.completeWorkout(workout)
+
+        #expect(workout.isCompleted == true)
+        #expect(workout.completedDate != nil)
     }
 }

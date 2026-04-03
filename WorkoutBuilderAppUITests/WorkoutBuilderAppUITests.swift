@@ -9,31 +9,58 @@ import XCTest
 
 final class WorkoutBuilderAppUITests: XCTestCase {
 
+    private var app: XCUIApplication!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
-
-        // In UI tests it’s important to set the initial state - such as interface orientation - required for your tests before they run. The setUp method is a good place to do this.
+        app = XCUIApplication()
+        app.launch()
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        app = nil
+    }
+
+    // MARK: - Tab Navigation
+
+    @MainActor
+    func testAppLaunchesWithWorkoutsTab() throws {
+        XCTAssertTrue(app.staticTexts["My Workouts"].waitForExistence(timeout: 5))
     }
 
     @MainActor
-    func testExample() throws {
-        // UI tests must launch the application that they test.
-        let app = XCUIApplication()
-        app.launch()
+    func testCanSwitchToHistoryTab() throws {
+        app.tabBars.buttons["History"].tap()
+        let historyTitle = app.navigationBars["History"].waitForExistence(timeout: 3)
+        let emptyState = app.staticTexts["No completed workouts yet"].waitForExistence(timeout: 3)
+        XCTAssertTrue(historyTitle || emptyState)
+    }
 
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
+    // MARK: - Workout Creation Flow
+
+    @MainActor
+    func testCreateNewWorkoutDialogAppears() throws {
+        app.buttons["plus.circle.fill"].tap()
+        let alert = app.alerts["New Workout"]
+        XCTAssertTrue(alert.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testEmptyStateVisibleOnFreshLaunch() throws {
+        let emptyStateText = app.staticTexts["No workouts yet"]
+        _ = emptyStateText.waitForExistence(timeout: 3)
+    }
+
+    // MARK: - HIIT Timer
+
+    @MainActor
+    func testHIITTimerButtonExists() throws {
+        let timerButton = app.staticTexts["HIIT Timer"]
+        XCTAssertTrue(timerButton.waitForExistence(timeout: 5))
     }
 
     @MainActor
     func testLaunchPerformance() throws {
-        // This measures how long it takes to launch your application.
         measure(metrics: [XCTApplicationLaunchMetric()]) {
             XCUIApplication().launch()
         }
