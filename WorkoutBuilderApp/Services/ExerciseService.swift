@@ -2,11 +2,11 @@
 //  ExerciseService.swift
 //  WorkoutBuilderApp
 //
-//  Created by Ashlynn Moore on 3/31/26.
+//  Created by Ashlynn Moore on 7/11/25.
 //
 
-import Foundation
 
+import Foundation
 
 // for testing purposes
 protocol URLSessionProtocol {
@@ -20,6 +20,9 @@ class ExerciseService: ObservableObject {
     @Published var exercises: [Exercise] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+
+    /// Controls how many exercises are exposed to the UI at once.
+    @Published var displayLimit: Int = 50
     
     private let exerciseURL = "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/dist/exercises.json"
     private let session: URLSessionProtocol  // ← use protocol, not concrete type
@@ -27,6 +30,23 @@ class ExerciseService: ObservableObject {
     init(session: URLSessionProtocol = URLSession.shared) {
         self.session = session  // ← inject the session
         Task { await loadExercises() }
+    }
+
+    /// The subset of exercises currently displayed in the UI.
+    /// Increases as the user scrolls via `loadMoreExercises()`.
+    var displayedExercises: [Exercise] {
+        Array(exercises.prefix(displayLimit))
+    }
+
+    /// Reveals the next batch of exercises for lazy display.
+    func loadMoreExercises() {
+        guard displayLimit < exercises.count else { return }
+        displayLimit += 50
+    }
+
+    /// Whether more exercises are available beyond the current display limit.
+    var hasMoreExercises: Bool {
+        displayLimit < exercises.count
     }
     
     // MARK: - Load (cache first, then network)
@@ -74,7 +94,7 @@ class ExerciseService: ObservableObject {
                 let message = errorMessage(for: error)
                 await MainActor.run {
                     self.errorMessage = message
-                    self.exercises = Exercise.sampleExercises
+                    self.exercises = Self.loadBundledExercises()
                     self.isLoading = false
                 }
             }
@@ -95,13 +115,13 @@ class ExerciseService: ObservableObject {
     private func errorMessage(for error: Error) -> String {
         switch error {
         case ExerciseServiceError.invalidResponse:
-            return "Invalid server response"
+            return String(localized: "Invalid server response")
         case ExerciseServiceError.httpError(let code):
-            return "HTTP error: \(code)"
+            return String(localized: "HTTP error: \(code)")
         case is DecodingError:
-            return "Failed to decode exercises"
+            return String(localized: "Failed to decode exercises")
         default:
-            return "Network error: \(error.localizedDescription)"
+            return String(localized: "Network error: \(error.localizedDescription)")
         }
     }
     
@@ -117,7 +137,9 @@ class ExerciseService: ObservableObject {
             let cacheDate = UserDefaults.standard.object(forKey: "CachedExercisesDate") as? Date,
             Date().timeIntervalSince(cacheDate) < 86400 * 7,
             let data = UserDefaults.standard.data(forKey: "CachedExercises"),
-            let cached = try? JSONDecoder().decode([Exercise].self, from: data)
+            let cached = try? JSONDecoder().decode([Exercise].self, from: data),
+            !cached.isEmpty,
+            cached.allSatisfy({ !$0.name.isEmpty && !$0.id.isEmpty })
         else { return nil }
         return cached
     }
@@ -154,6 +176,7 @@ class ExerciseService: ObservableObject {
     
     // MARK: - Utilities
     func refreshExercises() {
+        displayLimit = 50
         Task { await fetchExercises() }
     }
     
@@ -161,8 +184,22 @@ class ExerciseService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "CachedExercises")
         UserDefaults.standard.removeObject(forKey: "CachedExercisesDate")
     }
+
+    /// Loads exercises from the bundled fallback JSON file.
+    /// Used when both network and cache are unavailable.
+    static func loadBundledExercises() -> [Exercise] {
+        guard let url = Bundle.main.url(forResource: "fallback_exercises", withExtension: "json"),
+              let data = try? Data(contentsOf: url),
+              let exercises = try? JSONDecoder().decode([Exercise].self, from: data),
+              !exercises.isEmpty
+        else {
+            return Exercise.sampleExercises
+        }
+        return exercises
+    }
     
     // MARK: - Debug
+    #if DEBUG
     func validateExerciseData() {
         print("=== Exercise Data Validation ===")
         print("Total exercises: \(exercises.count)")
@@ -194,6 +231,7 @@ class ExerciseService: ObservableObject {
             }
         }
     }
+    #endif
 }
 
 // MARK: - Error Types
@@ -201,6 +239,5 @@ enum ExerciseServiceError: Error {
     case invalidResponse
     case httpError(Int)
 }
-
 
 

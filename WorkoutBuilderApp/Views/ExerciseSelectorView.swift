@@ -1,7 +1,4 @@
 //
-//  WorkoutBuilderView.swift
-//  WorkoutBuilderApp
-//
 //  Created by Ashlynn Moore on 6/22/25.
 //
 
@@ -106,6 +103,11 @@ struct ExerciseSelectorView: View {
                             .padding(.vertical, 4)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .onAppear {
+                            if exercise.id == viewModel.filteredExercises.last?.id {
+                                viewModel.exerciseService.loadMoreExercises()
+                            }
+                        }
                     }
                 }
             }
@@ -132,3 +134,5 @@ struct ExerciseSelectorView: View {
         }
     }
 }
+
+
