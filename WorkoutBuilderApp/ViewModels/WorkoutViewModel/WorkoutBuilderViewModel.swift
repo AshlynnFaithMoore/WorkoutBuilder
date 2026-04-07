@@ -1,6 +1,4 @@
 //
-//  WorkoutViewModel.swift
-//  WorkoutBuilderApp
 //
 //  Created by Ashlynn Moore on 6/21/25.
 //
@@ -42,10 +40,24 @@ class WorkoutBuilderViewModel: ObservableObject {
 
     // MARK: - Data Access
 
+    private let workoutPageSize = 50
+
     private func fetchWorkouts() {
         guard let modelContext else { return }
-        let descriptor = FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.createdDate)])
+        var descriptor = FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.createdDate)])
+        descriptor.fetchLimit = workoutPageSize
         savedWorkouts = (try? modelContext.fetch(descriptor)) ?? []
+        invalidateCaches()
+    }
+
+    /// Loads the next page of workouts when the user scrolls to the bottom.
+    func loadMoreWorkouts() {
+        guard let modelContext else { return }
+        var descriptor = FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.createdDate)])
+        descriptor.fetchLimit = workoutPageSize
+        descriptor.fetchOffset = savedWorkouts.count
+        guard let more = try? modelContext.fetch(descriptor), !more.isEmpty else { return }
+        savedWorkouts.append(contentsOf: more)
         invalidateCaches()
     }
 
@@ -61,16 +73,16 @@ class WorkoutBuilderViewModel: ObservableObject {
         cachedCompletedWorkouts = nil
     }
 
-    // Computed property to get available exercises
+    // Computed property to get available exercises (display-limited)
     var availableExercises: [Exercise] {
-        return exerciseService.exercises
+        return exerciseService.displayedExercises
     }
 
     // Computed property to filter exercises by category, equipment, level, and search
     var filteredExercises: [Exercise] {
         var filtered = availableExercises
 
-        // Apply search filter first
+        // Apply search filter first (searches all exercises, not just displayed)
         if !searchText.isEmpty {
             filtered = exerciseService.search(query: searchText)
         }

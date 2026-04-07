@@ -6,7 +6,6 @@
 //
 
 
-
 import SwiftUI
 
 struct HIITTimerCustomizationView: View {
@@ -75,7 +74,10 @@ struct HIITTimerCustomizationView: View {
                         if selectedMode == .uniform {
                             uniformIntervalSection
                         } else {
-                            workRestSection
+                            TimerWorkRestSection(
+                                selectedWorkIndex: $selectedWorkIndex,
+                                selectedRestIndex: $selectedRestIndex
+                            )
                         }
                         
                         // MARK: Total Duration (shared between modes)
@@ -109,7 +111,16 @@ struct HIITTimerCustomizationView: View {
                         soundSection
                         
                         // MARK: Preview
-                        previewSection
+                        TimerPreviewSection(
+                            timerName: customTimerName,
+                            selectedMode: selectedMode,
+                            selectedIntervalIndex: selectedIntervalIndex,
+                            selectedWorkIndex: selectedWorkIndex,
+                            selectedRestIndex: selectedRestIndex,
+                            selectedDurationIndex: selectedDurationIndex,
+                            intervalSound: selectedIntervalSound,
+                            completionSound: selectedCompletionSound
+                        )
                     }
                 }
                 
@@ -191,67 +202,6 @@ struct HIITTimerCustomizationView: View {
         .padding(.horizontal)
     }
     
-    private var workRestSection: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            // Work Duration
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Circle()
-                        .fill(Color.red)
-                        .frame(width: 10, height: 10)
-                    Text("Work Duration")
-                        .font(.headline)
-                }
-                
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
-                    ForEach(Array(HIITTimer.presetWorkDurations.enumerated()), id: \.offset) { index, duration in
-                        Button(action: { selectedWorkIndex = index }) {
-                            Text(HIITTimer.formatTime(duration))
-                                .font(.system(.body, design: .monospaced))
-                                .fontWeight(.medium)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(selectedWorkIndex == index ? Color.red : Color(.systemGray5))
-                                )
-                                .foregroundColor(selectedWorkIndex == index ? .white : .primary)
-                        }
-                    }
-                }
-            }
-            
-            // Rest Duration
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Circle()
-                        .fill(Color.blue)
-                        .frame(width: 10, height: 10)
-                    Text("Rest Duration")
-                        .font(.headline)
-                }
-                
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 3), spacing: 12) {
-                    ForEach(Array(HIITTimer.presetRestDurations.enumerated()), id: \.offset) { index, duration in
-                        Button(action: { selectedRestIndex = index }) {
-                            Text(HIITTimer.formatTime(duration))
-                                .font(.system(.body, design: .monospaced))
-                                .fontWeight(.medium)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 16)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(selectedRestIndex == index ? Color.blue : Color(.systemGray5))
-                                )
-                                .foregroundColor(selectedRestIndex == index ? .white : .primary)
-                        }
-                    }
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-    
     private var soundSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Sound Settings")
@@ -300,41 +250,6 @@ struct HIITTimerCustomizationView: View {
         }
     }
     
-    private var previewSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Preview")
-                .font(.headline)
-            
-            VStack(spacing: 8) {
-                previewRow("Timer Name", customTimerName.isEmpty ? "HIIT Timer" : customTimerName)
-                previewRow("Mode", selectedMode == .uniform ? "Uniform" : "Work / Rest")
-                
-                if selectedMode == .uniform {
-                    previewRow("Interval", HIITTimer.formatTime(HIITTimer.presetIntervals[selectedIntervalIndex]))
-                } else {
-                    previewRow("Work", HIITTimer.formatTime(HIITTimer.presetWorkDurations[selectedWorkIndex]))
-                    previewRow("Rest", HIITTimer.formatTime(HIITTimer.presetRestDurations[selectedRestIndex]))
-                }
-                
-                previewRow("Total Duration", HIITTimer.formatTime(HIITTimer.presetDurations[selectedDurationIndex]))
-                previewRow("Interval Sound", selectedIntervalSound.displayName)
-                previewRow("Completion Sound", selectedCompletionSound.displayName)
-            }
-            .padding()
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
-        }
-        .padding(.horizontal)
-    }
-    
-    private func previewRow(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-            Spacer()
-            Text(value).fontWeight(.medium)
-        }
-    }
-    
     // MARK: - Actions
     private func startTimer() {
         let finalName = customTimerName.isEmpty ? "HIIT Timer" : customTimerName
@@ -355,5 +270,8 @@ struct HIITTimerCustomizationView: View {
         timerViewModel.startTimer()
     }
 }
+
+
+
 
 
