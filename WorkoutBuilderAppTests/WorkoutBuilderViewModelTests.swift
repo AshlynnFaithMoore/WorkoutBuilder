@@ -32,7 +32,8 @@ private let secondExercise = Exercise(
     level: "beginner"
 )
 
-/// Creates a WorkoutBuilderViewModel backed by an in-memory SwiftData store.
+// Creates a WorkoutBuilderViewModel backed by an in-memory SwiftData store.
+@MainActor
 private func makeViewModel() -> WorkoutBuilderViewModel {
     let schema = Schema([Workout.self, WorkoutExercise.self])
     let config = ModelConfiguration(isStoredInMemoryOnly: true)
@@ -41,7 +42,8 @@ private func makeViewModel() -> WorkoutBuilderViewModel {
     vm.configure(with: container.mainContext)
     return vm
 }
-
+@Suite(.serialized)
+@MainActor
 struct WorkoutBuilderViewModelTests {
 
     // MARK: - Starting a New Workout
