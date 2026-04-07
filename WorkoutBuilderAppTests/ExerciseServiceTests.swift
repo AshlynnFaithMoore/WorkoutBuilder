@@ -1,4 +1,4 @@
-//
+
 //  ExerciseServiceTests.swift
 //  WorkoutBuilderApp
 //
@@ -87,11 +87,11 @@ struct ExerciseServiceTests {
     // These tests confirm that valid JSON gets turned into Exercise objects correctly
     
     @Test func loadsExercisesFromValidJSON() async throws {
-        // Arrange — create a mock session that returns one exercise
+        // Arrange -- create a mock session that returns one exercise
         let session = MockURLSession(data: makeExerciseJSON(), statusCode: 200)
         let service = ExerciseService(session: session)
         
-        // Act: wait for the async fetch to complete
+        // Act -- wait for the async fetch to complete
         await service.fetchExercises()
         
         // Assert
@@ -250,4 +250,140 @@ struct ExerciseServiceTests {
         #expect(beginnerExercises.allSatisfy { $0.level == "beginner" })
         #expect(!beginnerExercises.isEmpty)
     }
-}
+
+    // MARK: - Cache Behavior
+
+    @Test func clearCacheRemovesCachedData() async {
+        let session = MockURLSession(data: makeExerciseJSON(), statusCode: 200)
+        let service = ExerciseService(session: session)
+        await service.fetchExercises()
+
+        service.clearCache()
+
+        // After clearing, cached keys should be gone
+        #expect(UserDefaults.standard.data(forKey: "CachedExercises") == nil)
+        #expect(UserDefaults.standard.object(forKey: "CachedExercisesDate") == nil)
+    }
+
+    @Test func availableEquipmentReturnsSortedUniqueList() async {
+        let session = MockURLSession(data: makeMultipleExercisesJSON(), statusCode: 200)
+        let service = ExerciseService(session: session)
+        await service.fetchExercises()
+
+        let equipment = service.availableEquipment
+        #expect(equipment == equipment.sorted())
+        #expect(Set(equipment).count == equipment.count)
+    }
+
+    @Test func availableLevelsReturnsSortedUniqueList() async {
+        let session = MockURLSession(data: makeMultipleExercisesJSON(), statusCode: 200)
+        let service = ExerciseService(session: session)
+        await service.fetchExercises()
+
+        let levels = service.availableLevels
+        #expect(levels == levels.sorted())
+        #expect(Set(levels).count == levels.count)
+    }
+
+    // MARK: - Cache TTL and Offline Behavior (TEST-3)
+
+    @Test func staleCacheIsIgnored() async {
+        // Seed the cache with valid data but a date older than 7 days
+        let session = MockURLSession(data: makeExerciseJSON(), statusCode: 200)
+        let service = ExerciseService(session: session)
+        await service.fetchExercises()
+
+        // Backdate the cache timestamp to 8 days ago
+        let staleDate = Calendar.current.date(byAdding: .day, value: -8, to: Date())!
+        UserDefaults.standard.set(staleDate, forKey: "CachedExercisesDate")
+
+        // Create a new service with a different mock that returns 3 exercises
+        let freshSession = MockURLSession(data: makeMultipleExercisesJSON(), statusCode: 200)
+        let freshService = ExerciseService(session: freshSession)
+        await freshService.loadExercises()
+
+        // Should have fetched from network (3 exercises) not stale cache (1)
+        #expect(freshService.exercises.count == 3)
+
+        // Cleanup
+        service.clearCache()
+    }
+
+    @Test func validCacheIsUsedInsteadOfNetwork() async {
+        // First, populate the cache by doing a real fetch
+        let session = MockURLSession(data: makeExerciseJSON(), statusCode: 200)
+        let service = ExerciseService(session: session)
+        await service.fetchExercises()
+
+        // Create a new service with a session that would return different data
+        let differentSession = MockURLSession(data: makeMultipleExercisesJSON(), statusCode: 200)
+        let cachedService = ExerciseService(session: differentSession)
+        await cachedService.loadExercises()
+
+        // Should have loaded from cache (1 exercise) not network (3)
+        #expect(cachedService.exercises.count == 1)
+
+        // Cleanup
+        service.clearCache()
+    }
+
+    @Test func offlineFallsBackToBundledExercisesWhenCacheEmpty() async {
+        // Clear any existing cache
+        UserDefaults.standard.removeObject(forKey: "CachedExercises")
+        UserDefaults.standard.removeObject(forKey: "CachedExercisesDate")
+
+        // Create a service whose network request will fail
+        let failingSession = MockURLSession()
+        failingSession.errorToThrow = URLError(.notConnectedToInternet)
+        let service = ExerciseService(session: failingSession)
+        await service.fetchExercises()
+
+        // Should have fallen back to bundled exercises (not empty)
+        #expect(!service.exercises.isEmpty)
+        #expect(service.errorMessage != nil)
+    }
+
+    @Test func refreshResetsCacheAndFetchesFresh() async {
+        // Populate cache
+        let session = MockURLSession(data: makeExerciseJSON(), statusCode: 200)
+        let service = ExerciseService(session: session)
+        await service.fetchExercises()
+        #expect(service.exercises.count == 1)
+
+        // Change mock to return different data, then force refresh
+        session.dataToReturn = makeMultipleExercisesJSON()
+        await service.fetchExercises()
+
+        #expect(service.exercises.count == 3)
+
+        // Cleanup
+        service.clearCache()
+    }
+
+    // MARK: - Display Batching (DATA-3)
+    @Test func displayLimitControlsVisibleExercises() async {
+            let session = MockURLSession(data: makeMultipleExercisesJSON(), statusCode: 200)
+            let service = ExerciseService(session: session)
+            await service.fetchExercises()
+
+            #expect(service.displayedExercises.count == 3)
+            #expect(service.hasMoreExercises == false)
+        }
+
+        @Test func loadMoreIncreasesDisplayLimit() async {
+            let session = MockURLSession(data: makeMultipleExercisesJSON(), statusCode: 200)
+            let service = ExerciseService(session: session)
+            service.displayLimit = 1
+            await service.fetchExercises()
+
+            #expect(service.displayedExercises.count == 1)
+            #expect(service.hasMoreExercises == true)
+
+            service.loadMoreExercises()
+            #expect(service.displayedExercises.count == 3)
+        }
+    }
+
+
+
+   
