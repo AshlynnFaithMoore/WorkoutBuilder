@@ -324,4 +324,106 @@ struct WorkoutBuilderViewModelTests {
         #expect(workout.isCompleted == true)
         #expect(workout.completedDate != nil)
     }
-}
+    
+    
+  // MARK: - Filter Combinations (TEST-6)
+
+      @Test func categoryAndSearchFiltersApplyTogether() {
+          let vm = makeViewModel()
+          vm.exerciseService.exercises = [
+              Exercise(id: "fc-001", name: "Push-up", category: .chest,
+                       description: "Chest push-up", primaryMuscles: ["chest"], level: "beginner"),
+              Exercise(id: "fc-002", name: "Bench Press", category: .chest,
+                       description: "Barbell bench press", primaryMuscles: ["chest"],
+                       equipment: ["barbell"], level: "intermediate"),
+              Exercise(id: "fc-003", name: "Squat", category: .legs,
+                       description: "Bodyweight squat", primaryMuscles: ["quadriceps"], level: "beginner")
+          ]
+          vm.selectedCategory = .chest
+          vm.searchText = "bench"
+
+          let filtered = vm.filteredExercises
+          #expect(filtered.count == 1)
+          #expect(filtered.first?.name == "Bench Press")
+      }
+
+      @Test func categoryAndEquipmentFiltersApplyTogether() {
+          let vm = makeViewModel()
+          vm.exerciseService.exercises = [
+              Exercise(id: "fc-010", name: "Bench Press", category: .chest,
+                       description: "Barbell bench press", primaryMuscles: ["chest"],
+                       equipment: ["barbell"], level: "intermediate"),
+              Exercise(id: "fc-011", name: "Push-up", category: .chest,
+                       description: "Bodyweight push-up", primaryMuscles: ["chest"],
+                       equipment: ["body only"], level: "beginner"),
+              Exercise(id: "fc-012", name: "Barbell Squat", category: .legs,
+                       description: "Barbell squat", primaryMuscles: ["quadriceps"],
+                       equipment: ["barbell"], level: "intermediate")
+          ]
+          vm.selectedCategory = .chest
+          vm.selectedEquipment = "barbell"
+
+          let filtered = vm.filteredExercises
+          #expect(filtered.count == 1)
+          #expect(filtered.first?.name == "Bench Press")
+      }
+
+      @Test func categoryEquipmentAndLevelFiltersApplyTogether() {
+          let vm = makeViewModel()
+          vm.exerciseService.exercises = [
+              Exercise(id: "fc-020", name: "Easy Bench", category: .chest,
+                       description: "Easy bench press", primaryMuscles: ["chest"],
+                       equipment: ["barbell"], level: "beginner"),
+              Exercise(id: "fc-021", name: "Bench Press", category: .chest,
+                       description: "Barbell bench press", primaryMuscles: ["chest"],
+                       equipment: ["barbell"], level: "intermediate")
+          ]
+          vm.selectedCategory = .chest
+          vm.selectedEquipment = "barbell"
+          vm.selectedLevel = "beginner"
+
+          let filtered = vm.filteredExercises
+          #expect(filtered.count == 1)
+          #expect(filtered.first?.name == "Easy Bench")
+      }
+
+      @Test func allFiltersTogetherNarrowsCorrectly() {
+          let vm = makeViewModel()
+          vm.exerciseService.exercises = [
+              Exercise(id: "fc-030", name: "Beginner Barbell Press", category: .chest,
+                       description: "Beginner press", primaryMuscles: ["chest"],
+                       equipment: ["barbell"], level: "beginner"),
+              Exercise(id: "fc-031", name: "Advanced Barbell Press", category: .chest,
+                       description: "Advanced press", primaryMuscles: ["chest"],
+                       equipment: ["barbell"], level: "expert"),
+              Exercise(id: "fc-032", name: "Beginner Barbell Squat", category: .legs,
+                       description: "Beginner squat", primaryMuscles: ["quadriceps"],
+                       equipment: ["barbell"], level: "beginner")
+          ]
+          vm.selectedCategory = .chest
+          vm.selectedEquipment = "barbell"
+          vm.selectedLevel = "beginner"
+          vm.searchText = "press"
+
+          let filtered = vm.filteredExercises
+          #expect(filtered.count == 1)
+          #expect(filtered.first?.id == "fc-030")
+      }
+
+      @Test func noFiltersMatchReturnsEmpty() {
+          let vm = makeViewModel()
+          vm.exerciseService.exercises = [
+              Exercise(id: "fc-040", name: "Push-up", category: .chest,
+                       description: "Push-up", primaryMuscles: ["chest"], level: "beginner")
+          ]
+          vm.selectedCategory = .legs
+          vm.searchText = "push"
+
+          let filtered = vm.filteredExercises
+          #expect(filtered.isEmpty)
+      }
+  }
+
+
+
+
