@@ -32,19 +32,19 @@ class ExerciseService: ObservableObject {
         Task { await loadExercises() }
     }
 
-    /// The subset of exercises currently displayed in the UI.
-    /// Increases as the user scrolls via `loadMoreExercises()`.
+    // The subset of exercises currently displayed in the UI.
+    // ncreases as the user scrolls via `loadMoreExercises()`.
     var displayedExercises: [Exercise] {
         Array(exercises.prefix(displayLimit))
     }
 
-    /// Reveals the next batch of exercises for lazy display.
+    // Reveals the next batch of exercises for lazy display.
     func loadMoreExercises() {
         guard displayLimit < exercises.count else { return }
         displayLimit += 50
     }
 
-    /// Whether more exercises are available beyond the current display limit.
+    // Whether more exercises are available beyond the current display limit.
     var hasMoreExercises: Bool {
         displayLimit < exercises.count
     }
@@ -185,8 +185,8 @@ class ExerciseService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: "CachedExercisesDate")
     }
 
-    /// Loads exercises from the bundled fallback JSON file.
-    /// Used when both network and cache are unavailable.
+    // Loads exercises from the bundled fallback JSON file.
+    // Used when both network and cache are unavailable.
     static func loadBundledExercises() -> [Exercise] {
         guard let url = Bundle.main.url(forResource: "fallback_exercises", withExtension: "json"),
               let data = try? Data(contentsOf: url),

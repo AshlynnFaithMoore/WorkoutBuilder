@@ -55,12 +55,7 @@ struct AnimatedExerciseImage: View {
     }
     
     private func loadImages() async {
-        var loaded: [UIImage] = []
-        for url in urls {
-            if let image = await ImageCache.shared.image(for: url) {
-                loaded.append(image)
-            }
-        }
+        let loaded = await ImageCache.shared.images(for: urls)
         await MainActor.run {
             images = loaded
             isLoading = false
