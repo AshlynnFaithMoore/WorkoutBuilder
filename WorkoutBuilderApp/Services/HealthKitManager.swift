@@ -21,18 +21,22 @@ class HealthKitManager: ObservableObject {
     @Published var errorMessage: String?
     
     // The data types we want to read
-    private let readTypes: Set<HKObjectType> = [
-        HKObjectType.quantityType(forIdentifier: .heartRate)!,
-        HKObjectType.quantityType(forIdentifier: .stepCount)!,
-        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-        HKObjectType.workoutType()
-    ]
-    
-    // The data types we want to write
-    private let writeTypes: Set<HKSampleType> = [
-        HKObjectType.quantityType(forIdentifier: .activeEnergyBurned)!,
-        HKObjectType.workoutType()
-    ]
+    private let readTypes: Set<HKObjectType> = {
+            var types = Set<HKObjectType>()
+            if let heartRate = HKObjectType.quantityType(forIdentifier: .heartRate) { types.insert(heartRate) }
+            if let steps = HKObjectType.quantityType(forIdentifier: .stepCount) { types.insert(steps) }
+            if let energy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(energy) }
+            types.insert(HKObjectType.workoutType())
+            return types
+        }()
+        
+        // The data types we want to write
+        private let writeTypes: Set<HKSampleType> = {
+            var types = Set<HKSampleType>()
+            if let energy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned) { types.insert(energy) }
+            types.insert(HKObjectType.workoutType())
+            return types
+        }()
     
     // MARK: - Authorization
     func requestAuthorization() async {

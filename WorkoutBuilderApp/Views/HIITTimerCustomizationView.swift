@@ -245,6 +245,7 @@ struct HIITTimerCustomizationView: View {
                         .font(.title2)
                         .foregroundColor(.blue)
                 }
+                .accessibilityLabel("Preview sound")
                 .disabled(selection.wrappedValue == .none)
             }
         }
@@ -270,6 +271,8 @@ struct HIITTimerCustomizationView: View {
         timerViewModel.startTimer()
     }
 }
+
+
 
 
 

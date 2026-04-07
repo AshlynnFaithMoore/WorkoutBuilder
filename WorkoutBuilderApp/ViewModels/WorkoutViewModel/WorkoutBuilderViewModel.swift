@@ -31,7 +31,7 @@ class WorkoutBuilderViewModel: ObservableObject {
 
     init() {}
 
-    /// Called once from ContentView.onAppear to inject the SwiftData context.
+    // Called once from ContentView.onAppear to inject the SwiftData context.
     func configure(with context: ModelContext) {
         guard modelContext == nil else { return }
         modelContext = context
@@ -50,7 +50,7 @@ class WorkoutBuilderViewModel: ObservableObject {
         invalidateCaches()
     }
 
-    /// Loads the next page of workouts when the user scrolls to the bottom.
+    // Loads the next page of workouts when the user scrolls to the bottom.
     func loadMoreWorkouts() {
         guard let modelContext else { return }
         var descriptor = FetchDescriptor<Workout>(sortBy: [SortDescriptor(\.createdDate)])
@@ -172,51 +172,52 @@ class WorkoutBuilderViewModel: ObservableObject {
         let calendar = Calendar.current
         let today = calendar.startOfDay(for: Date())
 
-        let result = (0..<30).reversed().map { daysAgo in
-            let day = calendar.date(byAdding: .day, value: -daysAgo, to: today)!
-            let count = completedWorkouts.filter {
-                guard let completed = $0.completedDate else { return false }
-                return calendar.isDate(completed, inSameDayAs: day)
-            }.count
-            return (date: day, count: count)
-        }
-        cachedWorkoutsPerDay = result
-        return result
-    }
-
-    // Category breakdown across all completed workouts for the donut chart
-    var categoryBreakdown: [(category: ExerciseCategory, count: Int)] {
-        if let cached = cachedCategoryBreakdown { return cached }
-        var counts: [ExerciseCategory: Int] = [:]
-        completedWorkouts
-            .flatMap { $0.exercises }
-            .forEach { counts[$0.exercise.category, default: 0] += 1 }
-        let result = counts
-            .map { (category: $0.key, count: $0.value) }
-            .sorted { $0.count > $1.count }
-        cachedCategoryBreakdown = result
-        return result
-    }
-
-    // Current weekly streak -- consecutive weeks with at least one workout
-    var currentStreak: Int {
-        if let cached = cachedCurrentStreak { return cached }
-        guard !completedWorkouts.isEmpty else { return 0 }
-        let calendar = Calendar.current
-        var streak = 0
-        var weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
-
-        while true {
-            let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart)!
-            let hasWorkout = completedWorkouts.contains {
-                guard let date = $0.completedDate else { return false }
-                return date >= weekStart && date < weekEnd
+        let result = (0..<30).reversed().compactMap { daysAgo -> (date: Date, count: Int)? in
+                    guard let day = calendar.date(byAdding: .day, value: -daysAgo, to: today) else { return nil }
+                    let count = completedWorkouts.filter {
+                        guard let completed = $0.completedDate else { return false }
+                        return calendar.isDate(completed, inSameDayAs: day)
+                    }.count
+                    return (date: day, count: count)
+                }
+                cachedWorkoutsPerDay = result
+                return result
             }
-            if hasWorkout {
-                streak += 1
-                weekStart = calendar.date(byAdding: .day, value: -7, to: weekStart)!
-            } else {
-                break
+
+            // Category breakdown across all completed workouts for the donut chart
+            var categoryBreakdown: [(category: ExerciseCategory, count: Int)] {
+                if let cached = cachedCategoryBreakdown { return cached }
+                var counts: [ExerciseCategory: Int] = [:]
+                completedWorkouts
+                    .flatMap { $0.exercises }
+                    .forEach { counts[$0.exercise.category, default: 0] += 1 }
+                let result = counts
+                    .map { (category: $0.key, count: $0.value) }
+                    .sorted { $0.count > $1.count }
+                cachedCategoryBreakdown = result
+                return result
+            }
+
+            // Current weekly streak -- consecutive weeks with at least one workout
+            var currentStreak: Int {
+                if let cached = cachedCurrentStreak { return cached }
+                guard !completedWorkouts.isEmpty else { return 0 }
+                let calendar = Calendar.current
+                var streak = 0
+                var weekStart = calendar.dateInterval(of: .weekOfYear, for: Date())?.start ?? Date()
+
+                while true {
+                    guard let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStart) else { break }
+                    let hasWorkout = completedWorkouts.contains {
+                        guard let date = $0.completedDate else { return false }
+                        return date >= weekStart && date < weekEnd
+                    }
+                    if hasWorkout {
+                        streak += 1
+                        guard let prevWeek = calendar.date(byAdding: .day, value: -7, to: weekStart) else { break }
+                        weekStart = prevWeek
+                    } else {
+                        break
             }
         }
         cachedCurrentStreak = streak

@@ -165,7 +165,9 @@ class HIITTimerViewModel: ObservableObject {
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default, options: [.mixWithOthers])
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
+            #if DEBUG
             print("Failed to set up audio session: \(error)")
+            #endif
         }
     }
     
@@ -178,7 +180,9 @@ class HIITTimerViewModel: ObservableObject {
                 player.prepareToPlay()
                 audioPlayers[soundOption.rawValue] = player
             } catch {
+                #if DEBUG
                 print("Failed to load sound \(fileName): \(error)")
+                #endif
             }
         }
     }
@@ -210,3 +214,5 @@ class HIITTimerViewModel: ObservableObject {
     
     deinit { stopTimerLoop() }
 }
+
+
