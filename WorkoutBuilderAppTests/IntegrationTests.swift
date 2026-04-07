@@ -126,7 +126,8 @@ struct NetworkIntegrationTests {
 }
 
 // MARK: - Persistence Round-Trip Integration (TEST-2)
-
+@Suite(.serialized)
+@MainActor
 struct PersistenceIntegrationTests {
 
     @Test func workoutSurvivesFullCRUDCycle() {

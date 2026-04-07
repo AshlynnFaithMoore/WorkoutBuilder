@@ -7,6 +7,7 @@
 
 
 import Foundation
+import Combine
 
 // for testing purposes
 protocol URLSessionProtocol {
