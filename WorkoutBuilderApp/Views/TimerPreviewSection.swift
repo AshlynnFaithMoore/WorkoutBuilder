@@ -15,7 +15,7 @@
 
 import SwiftUI
 
-/// Displays a summary of the configured timer settings before starting.
+// Displays a summary of the configured timer settings before starting.
 struct TimerPreviewSection: View {
     let timerName: String
     let selectedMode: HIITTimerMode
