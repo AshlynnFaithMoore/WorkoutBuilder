@@ -288,6 +288,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
+				INFOPLIST_KEY_CFBundleDisplayName = WorkoutBuilder;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "WorkoutBuilder reads your heart rate and step count to enhance your HIIT sessions.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "WorkoutBuilder saves your workouts and calories burned to Apple Health.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -320,6 +322,8 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "";
+				INFOPLIST_KEY_CFBundleDisplayName = WorkoutBuilder;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "WorkoutBuilder reads your heart rate and step count to enhance your HIIT sessions.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "WorkoutBuilder saves your workouts and calories burned to Apple Health.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

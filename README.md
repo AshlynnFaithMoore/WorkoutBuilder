@@ -6,6 +6,22 @@ Built with **SwiftUI**, **SwiftData**, **HealthKit**, and **Swift Charts**. Targ
 
 ---
 
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/home.png" width="200" alt="Home Screen" />
+  <img src="screenshots/exercise-library.png" width="200" alt="Exercise Library" />
+  <img src="screenshots/exercise-detail.png" width="200" alt="Exercise Detail" />
+  <img src="screenshots/hiit-timer.png" width="200" alt="HIIT Timer" />
+</p>
+<p align="center">
+  <img src="screenshots/timer-active.png" width="200" alt="Active Timer" />
+  <img src="screenshots/session-summary.png" width="200" alt="Session Summary" />
+  <img src="screenshots/history.png" width="200" alt="Workout History" />
+</p>
+
+---
+
 ## Features
 
 ### Workout Builder
@@ -45,7 +61,7 @@ Built with **SwiftUI**, **SwiftData**, **HealthKit**, and **Swift Charts**. Targ
 
 ```
 WorkoutBuilderApp/
-  Main/                  App entry point, SwiftData container setup, legacy migration
+  Main/                  App entry point, SwiftData container setup
   Models/                SwiftData models (Workout, WorkoutExercise), Exercise, HIITTimer
   ViewModels/            WorkoutBuilderViewModel, HIITTimerViewModel
   Services/              ExerciseService (network + cache), HealthKitManager, ImageCache
@@ -57,7 +73,7 @@ WorkoutBuilderApp/
 **Key design decisions:**
 
 - **MVVM with service layer** -- Views are thin and declarative. ViewModels own state and business logic. Services handle network, caching, and system framework integration.
-- **SwiftData persistence** -- Workouts are stored in an encrypted SQLite database via SwiftData, with automatic lightweight schema migration. A one-time migration path converts legacy UserDefaults data on first launch.
+- **SwiftData persistence** -- Workouts are stored in an encrypted SQLite database via SwiftData, with automatic lightweight schema migration.
 - **Dependency injection** -- `ExerciseService` accepts a `URLSessionProtocol`, enabling deterministic unit tests with mock network responses.
 - **Snapshot-style exercise storage** -- `WorkoutExercise` stores a JSON-encoded copy of the `Exercise` at save time, so workout history is never affected by upstream exercise data changes.
 - **Offline-first** -- Exercises are cached with a 7-day TTL. If both network and cache fail, a bundled fallback dataset of 20 exercises loads from the app binary.
@@ -103,7 +119,7 @@ xcodebuild test -scheme WorkoutBuilderApp -destination 'platform=iOS Simulator,n
 
 ## Requirements
 
-- iOS 17.0+
+- iOS 17.6+
 - Xcode 15.0+
 - Swift 5.9+
 
@@ -123,5 +139,7 @@ HealthKit features require a physical device or Xcode simulator with Health data
 ## Privacy
 
 This app collects health and fitness data strictly for app functionality. No data is tracked, linked to identity, or shared with third parties. See `PrivacyInfo.xcprivacy` for the full declaration.
+
+
 
 
