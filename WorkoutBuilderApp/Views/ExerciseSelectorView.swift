@@ -26,6 +26,7 @@ struct ExerciseSelectorView: View {
                             Image(systemName: "xmark.circle.fill")
                                 .foregroundColor(.secondary)
                         }
+                        .accessibilityLabel("Clear search")
                     }
                 }
                 .padding(10)
@@ -65,6 +66,25 @@ struct ExerciseSelectorView: View {
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 4)
+                }
+
+                // Error State
+                if let errorMessage = viewModel.exerciseService.errorMessage {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundColor(.orange)
+                        Text(errorMessage)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Button("Retry") {
+                            viewModel.refreshExercises()
+                        }
+                        .font(.caption)
+                        .fontWeight(.medium)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 6)
                 }
 
                 // Exercise List
@@ -134,5 +154,7 @@ struct ExerciseSelectorView: View {
         }
     }
 }
+
+
 
 

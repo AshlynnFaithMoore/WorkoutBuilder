@@ -35,6 +35,7 @@ struct HomeView: View {
                         .font(.title2)
                         .foregroundColor(.blue)
                 }
+                .accessibilityLabel("Create new workout")
             }
             .padding()
             
@@ -80,6 +81,7 @@ struct HomeView: View {
                             }
                             .buttonStyle(PlainButtonStyle())
                             .padding(.horizontal)
+                            .accessibilityLabel("Open HIIT Timer")
                         }
                         .padding(.bottom)
             if viewModel.savedWorkouts.isEmpty {
